@@ -33,10 +33,12 @@ export default function SaveProjectModal({
   const [label, setLabel] = useState(initialLabel || '');
   const [existingProjects, setExistingProjects] = useState([]);
   const [selectedProjectId, setSelectedProjectId] = useState('');
+  const [clients, setClients] = useState([]);
+  const [selectedClientId, setSelectedClientId] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  // Fetch user's projects when opening in "existing" mode
+  // Fetch user's projects and clients when opening in "existing" mode
   useEffect(() => {
     if (!show) return;
     // Reset state
@@ -45,11 +47,19 @@ export default function SaveProjectModal({
     setLabel(initialLabel || '');
     setError('');
     setSelectedProjectId('');
+    setSelectedClientId('');
 
     fetch('/api/projects')
       .then((r) => r.json())
       .then((data) => {
         setExistingProjects(data.projects || []);
+      })
+      .catch(() => {});
+
+    fetch('/api/clients')
+      .then((r) => r.json())
+      .then((data) => {
+        setClients(data.clients || []);
       })
       .catch(() => {});
   }, [show, currentProjectId, currentProjectName, initialLabel]);
@@ -84,6 +94,9 @@ export default function SaveProjectModal({
           return;
         }
         payload.name = projectName.trim();
+        if (selectedClientId) {
+          payload.client_id = selectedClientId;
+        }
       } else {
         setError('Select a project or create a new one');
         setSaving(false);
@@ -172,6 +185,25 @@ export default function SaveProjectModal({
                 <option key={p.id} value={p.id}>
                   {p.name}
                   {p.calculations?.length ? ` (${p.calculations.length} calc${p.calculations.length > 1 ? 's' : ''})` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* Client picker — only for new projects */}
+        {(mode === 'new' || mode === 'update') && clients.length > 0 && (
+          <div style={{ marginBottom: '12px' }}>
+            <label style={s.label}>Client (optional)</label>
+            <select
+              value={selectedClientId}
+              onChange={(e) => setSelectedClientId(e.target.value)}
+              style={s.input}
+            >
+              <option value="">— No client —</option>
+              {clients.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
                 </option>
               ))}
             </select>

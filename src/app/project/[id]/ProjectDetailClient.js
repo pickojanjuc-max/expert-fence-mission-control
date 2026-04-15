@@ -405,7 +405,7 @@ export default function ProjectDetailClient({ projectId }) {
       {/* Top bar */}
       <div style={{ backgroundColor: '#fff', borderBottom: '1px solid #e5e7eb', padding: '12px 16px' }}>
         <div style={{ maxWidth: '960px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <a href="/dashboard" style={{ fontSize: '14px', color: '#2563eb', textDecoration: 'none', fontWeight: 500 }}>← Dashboard</a>
+          <a href="/projects" style={{ fontSize: '14px', color: '#2563eb', textDecoration: 'none', fontWeight: 500 }}>← Projects</a>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             {saveMsg && <span style={{ fontSize: '12px', color: '#10b981', fontWeight: 500 }}>{saveMsg}</span>}
             <button
@@ -435,7 +435,7 @@ export default function ProjectDetailClient({ projectId }) {
               {project.status}
             </span>
           </div>
-          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
             {statuses.map((s) => (
               <button
                 key={s}
@@ -454,6 +454,20 @@ export default function ProjectDetailClient({ projectId }) {
           </div>
         </div>
 
+        {/* Client info */}
+        {(project.client_id || project.client_name) && (
+          <div style={{ marginBottom: '24px', fontSize: '14px', color: '#6b7280' }}>
+            <strong>Client:</strong>{' '}
+            {project.client_id ? (
+              <a href={`/clients/${project.client_id}`} style={{ color: '#2563eb', textDecoration: 'none', fontWeight: 500, cursor: 'pointer' }}>
+                {project.client_name}
+              </a>
+            ) : (
+              <span>{project.client_name}</span>
+            )}
+          </div>
+        )}
+
         {/* Two-column layout */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '20px', alignItems: 'start' }}>
           {/* Left column */}
@@ -467,33 +481,57 @@ export default function ProjectDetailClient({ projectId }) {
               {calculations.length === 0 ? (
                 <p style={{ fontSize: '13px', color: '#9ca3af', margin: 0 }}>No calculations yet. Open a calculator and save to this project.</p>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {calculations.map((c) => (
-                    <div
-                      key={c.id}
-                      onClick={() => {
-                        const path = c.calculator_type === 'glass' ? '/calculator/glass' : '/calculator/aluminium';
-                        router.push(`${path}?calc=${c.id}`);
-                      }}
-                      style={{
-                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                        padding: '10px 12px', borderRadius: '6px', border: '1px solid #f3f4f6',
-                        cursor: 'pointer', transition: 'background-color 0.1s',
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f9fafb'; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span>{calcTypeIcons[c.calculator_type] || '📐'}</span>
-                        <span style={{ fontSize: '13px', fontWeight: 500, color: '#374151' }}>
-                          {c.label || calcTypeLabels[c.calculator_type] || c.calculator_type}
-                        </span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {calculations.map((c) => {
+                    const bomCount = (c.bom_snapshot?.consolidated || c.bom_snapshot?.bom || []).length;
+                    return (
+                      <div
+                        key={c.id}
+                        style={{
+                          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                          padding: '12px', borderRadius: '6px', border: '1px solid #e5e7eb',
+                          cursor: 'pointer', transition: 'all 0.1s',
+                          backgroundColor: '#f9fafb',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = '#f0fdf4';
+                          e.currentTarget.style.borderColor = '#10b981';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = '#f9fafb';
+                          e.currentTarget.style.borderColor = '#e5e7eb';
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+                          <span style={{ fontSize: '16px' }}>{calcTypeIcons[c.calculator_type] || '📐'}</span>
+                          <div>
+                            <div style={{ fontSize: '13px', fontWeight: 600, color: '#111827' }}>
+                              {c.label || calcTypeLabels[c.calculator_type] || c.calculator_type}
+                            </div>
+                            <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>
+                              {bomCount} items · {new Date(c.updated_at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const path = c.calculator_type === 'glass' ? '/calculator/glass' : c.calculator_type === 'balustrade' ? '/calculator/balustrade' : '/calculator/aluminium';
+                            router.push(`${path}?calc=${c.id}`);
+                          }}
+                          style={{
+                            padding: '6px 12px', fontSize: '12px', fontWeight: 600,
+                            backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '4px',
+                            cursor: 'pointer', transition: 'background-color 0.1s',
+                          }}
+                          onMouseEnter={(e) => e.target.style.backgroundColor = '#059669'}
+                          onMouseLeave={(e) => e.target.style.backgroundColor = '#10b981'}
+                        >
+                          Open Calculator
+                        </button>
                       </div>
-                      <span style={{ fontSize: '12px', color: '#9ca3af' }}>
-                        {new Date(c.updated_at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })} →
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

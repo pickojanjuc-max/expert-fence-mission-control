@@ -73,6 +73,21 @@ export default function DashboardClient({ email, plan }) {
     marginTop: '2px',
   };
 
+  const navCenterStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '24px',
+  };
+
+  const navLinkStyle = {
+    color: '#e5e7eb',
+    fontSize: '14px',
+    textDecoration: 'none',
+    fontWeight: '500',
+    cursor: 'pointer',
+    transition: 'color 0.2s',
+  };
+
   const navRightStyle = {
     display: 'flex',
     alignItems: 'center',
@@ -206,6 +221,7 @@ export default function DashboardClient({ email, plan }) {
           .ef-card-icon { height: 64px !important; font-size: 24px !important; margin-bottom: 12px !important; }
           .ef-card { padding: 16px !important; }
           .ef-projects-section { max-width: 100% !important; padding: 0 14px !important; }
+          .ef-dashboard-nav-center { gap: 12px !important; }
         }
       `}</style>
 
@@ -217,6 +233,14 @@ export default function DashboardClient({ email, plan }) {
             <h1 style={navTitleStyle}>Expert Fence</h1>
             <p style={navSubtitleStyle}>Mission Control</p>
           </div>
+        </div>
+        <div style={navCenterStyle} className="ef-dashboard-nav-center">
+          <a href="/clients" style={navLinkStyle} onMouseEnter={(e) => e.target.style.color = '#fff'} onMouseLeave={(e) => e.target.style.color = '#e5e7eb'}>
+            Clients
+          </a>
+          <a href="/projects" style={navLinkStyle} onMouseEnter={(e) => e.target.style.color = '#fff'} onMouseLeave={(e) => e.target.style.color = '#e5e7eb'}>
+            Projects
+          </a>
         </div>
         <div style={navRightStyle}>
           <span style={userEmailStyle} className="ef-dashboard-email">{email}</span>

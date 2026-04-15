@@ -60,6 +60,7 @@ export async function POST(request) {
     label,
     // project-level fields
     status,
+    client_id,        // link to clients table
     client_name,
     client_email,
     client_phone,
@@ -79,6 +80,7 @@ export async function POST(request) {
         user_id: user.id,
         name,
         status: status || 'draft',
+        client_id: client_id || null,
         client_name: client_name || '',
         client_email: client_email || '',
         client_phone: client_phone || '',
@@ -95,6 +97,7 @@ export async function POST(request) {
     const updates = { updated_at: new Date().toISOString() };
     if (name) updates.name = name;
     if (status) updates.status = status;
+    if (client_id !== undefined) updates.client_id = client_id;
     if (client_name !== undefined) updates.client_name = client_name;
     if (client_email !== undefined) updates.client_email = client_email;
     if (client_phone !== undefined) updates.client_phone = client_phone;
