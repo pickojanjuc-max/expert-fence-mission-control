@@ -27,6 +27,9 @@ export default function CalculatorPage({
   onProjectSaved,
   getCurrentState,
 }) {
+  const bomSnapshot = lastQuote
+    ? { bom: lastQuote.bom, summary: lastQuote.summary }
+    : null;
   const [selectedRun, setSelectedRun] = useState(0);
   const [rightTab, setRightTab] = useState("preview");
 
@@ -162,18 +165,17 @@ export default function CalculatorPage({
       </div>
 
       {/* Save Modal */}
-      {showSaveModal && (
-        <SaveProjectModal
-          isOpen={showSaveModal}
-          onClose={() => setShowSaveModal(false)}
-          projectId={projectId}
-          projectName={projectName}
-          calculationId={calculationId}
-          calculatorType="aluminium"
-          calculatorState={getCurrentState()}
-          onSaved={onProjectSaved}
-        />
-      )}
+      <SaveProjectModal
+        show={showSaveModal}
+        onClose={() => setShowSaveModal(false)}
+        onSaved={onProjectSaved}
+        calculatorType="aluminium"
+        calculatorState={getCurrentState()}
+        bomSnapshot={bomSnapshot}
+        currentProjectId={projectId}
+        currentProjectName={projectName}
+        currentCalculationId={calculationId}
+      />
     </div>
   );
 }
