@@ -1,0 +1,238 @@
+'use client';
+import React, { useState, useEffect } from 'react';
+
+/**
+ * SaveProjectModal — shared save dialog for all calculators.
+ *
+ * Props:
+ *   show           — boolean, whether modal is visible
+ *   onClose        — function, close the modal
+ *   onSaved        — function({ projectId, projectName, calculationId }), called after successful save
+ *   calculatorType — 'glass' | 'aluminium'
+ *   calculatorState— object, the full calculator state to persist
+ *   bomSnapshot    — object | null, the BOM result to persist
+ *   currentProjectId     — string | null, project this calc is already saved to
+ *   currentProjectName   — string, name of the current project
+ *   currentCalculationId — string | null, existing calculation row id
+ *   label                — string, optional label like "Pool fence"
+ */
+export default function SaveProjectModal({
+  show,
+  onClose,
+  onSaved,
+  calculatorType,
+  calculatorState,
+  bomSnapshot,
+  currentProjectId,
+  currentProjectName,
+  currentCalculationId,
+  label: initialLabel,
+}) {
+  const [mode, setMode] = useState(currentProjectId ? 'update' : 'new'); // 'new' | 'existing' | 'update'
+  const [projectName, setProjectName] = useState(currentProjectName || '');
+  const [label, setLabel] = useState(initialLabel || '');
+  const [existingProjects, setExistingProjects] = useState([]);
+  const [selectedProjectId, setSelectedProjectId] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  // Fetch user's projects when opening in "existing" mode
+  useEffect(() => {
+    if (!show) return;
+    // Reset state
+    setMode(currentProjectId ? 'update' : 'new');
+    setProjectName(currentProjectName || '');
+    setLabel(initialLabel || '');
+    setError('');
+    setSelectedProjectId('');
+
+    fetch('/api/projects')
+      .then((r) => r.json())
+      .then((data) => {
+        setExistingProjects(data.projects || []);
+      })
+      .catch(() => {});
+  }, [show, currentProjectId, currentProjectName, initialLabel]);
+
+  if (!show) return null;
+
+  async function handleSave() {
+    setSaving(true);
+    setError('');
+
+    try {
+      const payload = {
+        calculator_type: calculatorType,
+        calculator_state: calculatorState,
+        bom_snapshot: bomSnapshot || null,
+        label: label.trim(),
+      };
+
+      if (mode === 'update' && currentProjectId) {
+        // Update existing calculation in existing project
+        payload.project_id = currentProjectId;
+        payload.calculation_id = currentCalculationId || undefined;
+        payload.name = projectName.trim() || currentProjectName;
+      } else if (mode === 'existing' && selectedProjectId) {
+        // Add new calculation to existing project
+        payload.project_id = selectedProjectId;
+      } else if (mode === 'new') {
+        // Create new project + calculation
+        if (!projectName.trim()) {
+          setError('Enter a project name');
+          setSaving(false);
+          return;
+        }
+        payload.name = projectName.trim();
+      } else {
+        setError('Select a project or create a new one');
+        setSaving(false);
+        return;
+      }
+
+      const res = await fetch('/api/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+
+      if (data.project) {
+        onSaved({
+          projectId: data.project.id,
+          projectName: data.project.name,
+          calculationId: data.calculation?.id || null,
+        });
+        onClose();
+      } else {
+        setError(data.error || 'Save failed');
+      }
+    } catch (e) {
+      setError(e.message);
+    }
+    setSaving(false);
+  }
+
+  const s = styles; // alias
+
+  return (
+    <div onClick={onClose} style={s.overlay}>
+      <div onClick={(e) => e.stopPropagation()} style={s.modal}>
+        <h3 style={s.title}>
+          {currentProjectId ? 'Save Calculation' : 'Save to Project'}
+        </h3>
+
+        {/* Mode tabs — only show if not already attached to a project */}
+        {!currentProjectId && (
+          <div style={s.tabs}>
+            <button
+              onClick={() => setMode('new')}
+              style={mode === 'new' ? { ...s.tab, ...s.tabActive } : s.tab}
+            >
+              New Project
+            </button>
+            {existingProjects.length > 0 && (
+              <button
+                onClick={() => setMode('existing')}
+                style={mode === 'existing' ? { ...s.tab, ...s.tabActive } : s.tab}
+              >
+                Existing Project
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* New project name */}
+        {(mode === 'new' || mode === 'update') && (
+          <div style={{ marginBottom: '12px' }}>
+            <label style={s.label}>Project name</label>
+            <input
+              type="text"
+              value={projectName}
+              onChange={(e) => setProjectName(e.target.value)}
+              placeholder="e.g. Johnson Pool Area"
+              autoFocus
+              onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); }}
+              style={s.input}
+            />
+          </div>
+        )}
+
+        {/* Existing project picker */}
+        {mode === 'existing' && (
+          <div style={{ marginBottom: '12px' }}>
+            <label style={s.label}>Choose project</label>
+            <select
+              value={selectedProjectId}
+              onChange={(e) => setSelectedProjectId(e.target.value)}
+              style={s.input}
+            >
+              <option value="">— Select a project —</option>
+              {existingProjects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                  {p.calculations?.length ? ` (${p.calculations.length} calc${p.calculations.length > 1 ? 's' : ''})` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* Calculation label */}
+        <div style={{ marginBottom: '16px' }}>
+          <label style={s.label}>Label (optional)</label>
+          <input
+            type="text"
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            placeholder="e.g. Front boundary, Pool fence"
+            style={s.input}
+          />
+        </div>
+
+        {error && <div style={s.error}>{error}</div>}
+
+        <div style={s.actions}>
+          <button onClick={onClose} style={s.cancelBtn}>Cancel</button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            style={saving ? { ...s.saveBtn, opacity: 0.6, cursor: 'not-allowed' } : s.saveBtn}
+          >
+            {saving ? 'Saving...' : currentProjectId ? 'Save' : mode === 'existing' ? 'Add to Project' : 'Create & Save'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const styles = {
+  overlay: {
+    position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.4)',
+    zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px',
+  },
+  modal: {
+    backgroundColor: '#fff', borderRadius: '12px', boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+    padding: '20px', width: '100%', maxWidth: '420px',
+  },
+  title: { fontSize: '16px', fontWeight: 700, color: '#111827', marginTop: 0, marginBottom: '16px' },
+  tabs: { display: 'flex', gap: '4px', marginBottom: '16px', borderBottom: '1px solid #e5e7eb', paddingBottom: '8px' },
+  tab: {
+    padding: '6px 12px', fontSize: '13px', fontWeight: 500, background: 'none',
+    border: '1px solid transparent', borderRadius: '6px', cursor: 'pointer', color: '#6b7280',
+  },
+  tabActive: { backgroundColor: '#f0fdf4', border: '1px solid #10b981', color: '#059669', fontWeight: 600 },
+  label: { fontSize: '12px', fontWeight: 500, color: '#6b7280', display: 'block', marginBottom: '4px' },
+  input: {
+    width: '100%', border: '1px solid #d1d5db', borderRadius: '8px',
+    padding: '8px 12px', fontSize: '14px', boxSizing: 'border-box',
+  },
+  error: { color: '#dc2626', fontSize: '13px', marginBottom: '12px' },
+  actions: { display: 'flex', gap: '8px', justifyContent: 'flex-end' },
+  cancelBtn: { padding: '6px 12px', fontSize: '12px', fontWeight: 500, color: '#6b7280', background: 'none', border: 'none', cursor: 'pointer' },
+  saveBtn: {
+    padding: '6px 16px', fontSize: '12px', fontWeight: 600, color: '#fff',
+    backgroundColor: '#10b981', border: 'none', borderRadius: '6px', cursor: 'pointer',
+  },
+};
