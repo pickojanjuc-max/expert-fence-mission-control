@@ -143,6 +143,7 @@ export default function SignupPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                minLength={6}
                 style={{
                   width: '100%',
                   padding: '10px 12px',
@@ -152,6 +153,15 @@ export default function SignupPage() {
                   boxSizing: 'border-box',
                 }}
               />
+              <p
+                style={{
+                  margin: '6px 0 0',
+                  fontSize: '12px',
+                  color: password && password.length < 6 ? '#b91c1c' : '#6b7280',
+                }}
+              >
+                Must be at least 6 characters. Use a mix of letters, numbers, and symbols for a stronger password.
+              </p>
             </div>
 
             {/* Error message */}
