@@ -1,9 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
 export default function SignupPage() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -17,7 +19,7 @@ export default function SignupPage() {
     setIsLoading(true);
 
     try {
-      const { error: signUpError } = await supabase.auth.signUp({
+      const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
       });
@@ -28,6 +30,15 @@ export default function SignupPage() {
         return;
       }
 
+      // If Supabase returns a session, email confirmation is off and the user
+      // is already logged in. Send them straight to pricing.
+      if (data?.session) {
+        router.push('/pricing');
+        router.refresh();
+        return;
+      }
+
+      // Otherwise email confirmation is required — tell the user.
       setSuccess(true);
       setEmail('');
       setPassword('');
