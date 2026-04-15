@@ -192,8 +192,25 @@ export default function DashboardClient({ email, plan }) {
 
   return (
     <div style={containerStyle}>
+      {/* Responsive overrides for dashboard */}
+      <style>{`
+        @media (max-width: 900px) {
+          .ef-dashboard-grid { grid-template-columns: 1fr 1fr !important; max-width: 620px !important; }
+        }
+        @media (max-width: 640px) {
+          .ef-dashboard-grid { grid-template-columns: 1fr !important; max-width: 100% !important; gap: 14px !important; }
+          .ef-dashboard-content { padding: 20px 14px !important; }
+          .ef-dashboard-email { display: none !important; }
+          .ef-dashboard-nav { padding: 12px 14px !important; }
+          .ef-dashboard-greeting { font-size: 16px !important; margin-bottom: 20px !important; }
+          .ef-card-icon { height: 64px !important; font-size: 24px !important; margin-bottom: 12px !important; }
+          .ef-card { padding: 16px !important; }
+          .ef-projects-section { max-width: 100% !important; padding: 0 14px !important; }
+        }
+      `}</style>
+
       {/* Navigation Bar */}
-      <nav style={navStyle}>
+      <nav style={navStyle} className="ef-dashboard-nav">
         <div style={navLeftStyle}>
           <div style={logoBoxStyle}>EF</div>
           <div style={navTextStyle}>
@@ -202,7 +219,7 @@ export default function DashboardClient({ email, plan }) {
           </div>
         </div>
         <div style={navRightStyle}>
-          <span style={userEmailStyle}>{email}</span>
+          <span style={userEmailStyle} className="ef-dashboard-email">{email}</span>
           <button
             style={signOutButtonStyle}
             onClick={handleSignOut}
@@ -219,14 +236,14 @@ export default function DashboardClient({ email, plan }) {
       </nav>
 
       {/* Content */}
-      <div style={contentStyle}>
-        <div style={greetingStyle}>Welcome back, {email.split('@')[0]}</div>
+      <div style={contentStyle} className="ef-dashboard-content">
+        <div style={greetingStyle} className="ef-dashboard-greeting">Welcome back, {email.split('@')[0]}</div>
 
         {/* Calculator Cards Grid */}
-        <div style={gridContainerStyle}>
+        <div style={gridContainerStyle} className="ef-dashboard-grid">
           {/* Glass Pool Fencing Card */}
           <div
-            style={cardStyle}
+            style={cardStyle} className="ef-card"
             onMouseEnter={(e) => {
               e.currentTarget.style.borderColor = '#3b82f6';
               e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.1)';
@@ -236,7 +253,7 @@ export default function DashboardClient({ email, plan }) {
               e.currentTarget.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.05)';
             }}
           >
-            <div style={iconAreaGlassStyle}>
+            <div style={iconAreaGlassStyle} className="ef-card-icon">
               <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
                 <rect x="8" y="8" width="24" height="24" stroke="currentColor" strokeWidth="2" rx="2" />
                 <path d="M14 8V32" stroke="currentColor" strokeWidth="1" opacity="0.5" />
@@ -261,7 +278,7 @@ export default function DashboardClient({ email, plan }) {
 
           {/* Aluminium Fencing Card */}
           <div
-            style={cardStyle}
+            style={cardStyle} className="ef-card"
             onMouseEnter={(e) => {
               e.currentTarget.style.borderColor = '#3b82f6';
               e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.1)';
@@ -271,7 +288,7 @@ export default function DashboardClient({ email, plan }) {
               e.currentTarget.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.05)';
             }}
           >
-            <div style={iconAreaAluminium}>
+            <div style={iconAreaAluminium} className="ef-card-icon">
               <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
                 <rect x="8" y="10" width="4" height="20" fill="currentColor" />
                 <rect x="16" y="10" width="4" height="20" fill="currentColor" />
@@ -297,7 +314,7 @@ export default function DashboardClient({ email, plan }) {
 
           {/* Balustrade Card */}
           <div
-            style={cardStyle}
+            style={cardStyle} className="ef-card"
             onMouseEnter={(e) => {
               e.currentTarget.style.borderColor = '#3b82f6';
               e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.1)';
@@ -307,7 +324,7 @@ export default function DashboardClient({ email, plan }) {
               e.currentTarget.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.05)';
             }}
           >
-            <div style={iconAreaGlassStyle}>
+            <div style={iconAreaGlassStyle} className="ef-card-icon">
               <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
                 <rect x="10" y="8" width="20" height="24" stroke="currentColor" strokeWidth="2" />
                 <line x1="10" y1="16" x2="30" y2="16" stroke="currentColor" strokeWidth="1" opacity="0.5" />
@@ -333,7 +350,7 @@ export default function DashboardClient({ email, plan }) {
         </div>
 
         {/* Saved Projects */}
-        <div style={{ maxWidth: '640px', margin: '32px auto 0' }}>
+        <div style={{ maxWidth: '640px', margin: '32px auto 0' }} className="ef-projects-section">
           <h2 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', marginBottom: '16px' }}>
             Saved Projects
           </h2>
