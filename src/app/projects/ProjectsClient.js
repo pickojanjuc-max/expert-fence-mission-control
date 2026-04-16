@@ -24,6 +24,11 @@ export default function ProjectsClient({ email }) {
   const [showNewForm, setShowNewForm] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectClientId, setNewProjectClientId] = useState('');
+  const [clientMode, setClientMode] = useState('new'); // 'new' | 'existing' | 'none'
+  const [newClientName, setNewClientName] = useState('');
+  const [newClientCompany, setNewClientCompany] = useState('');
+  const [newClientPhone, setNewClientPhone] = useState('');
+  const [newClientEmail, setNewClientEmail] = useState('');
   const [clients, setClients] = useState([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -67,15 +72,43 @@ export default function ProjectsClient({ email }) {
       setError('Project name is required');
       return;
     }
+    if (clientMode === 'new' && !newClientName.trim()) {
+      setError('Client name is required (or switch to existing client / no client)');
+      return;
+    }
     setSaving(true);
     setError('');
     try {
+      let clientIdToUse = null;
+      if (clientMode === 'existing') {
+        clientIdToUse = newProjectClientId || null;
+      } else if (clientMode === 'new') {
+        // Create the client first
+        const cRes = await fetch('/api/clients', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: newClientName.trim(),
+            company: newClientCompany.trim(),
+            phone: newClientPhone.trim(),
+            email: newClientEmail.trim(),
+          }),
+        });
+        const cData = await cRes.json();
+        if (!cData.client) {
+          setError(cData.error || 'Failed to create client');
+          setSaving(false);
+          return;
+        }
+        clientIdToUse = cData.client.id;
+      }
+
       const res = await fetch('/api/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: newProjectName.trim(),
-          client_id: newProjectClientId || null,
+          client_id: clientIdToUse,
         }),
       });
       const data = await res.json();
@@ -225,24 +258,67 @@ export default function ProjectsClient({ email }) {
               </h3>
               <input
                 type="text"
-                placeholder="Project name *"
+                placeholder="Project name * (e.g. 'Smith residence — glass pool fence')"
                 value={newProjectName}
                 onChange={(e) => setNewProjectName(e.target.value)}
                 style={inputStyle}
                 autoFocus
               />
-              <select
-                value={newProjectClientId}
-                onChange={(e) => setNewProjectClientId(e.target.value)}
-                style={inputStyle}
-              >
-                <option value="">— No client —</option>
-                {clients.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
+
+              {/* Client mode switcher */}
+              <div style={{ display: 'flex', gap: 6, marginBottom: 10, fontSize: 12 }}>
+                {[
+                  { v: 'new', label: 'New client' },
+                  { v: 'existing', label: 'Existing client' },
+                  { v: 'none', label: 'No client yet' },
+                ].map((o) => (
+                  <button
+                    key={o.v}
+                    type="button"
+                    onClick={() => setClientMode(o.v)}
+                    style={{
+                      flex: 1,
+                      padding: '6px 10px',
+                      fontSize: 12,
+                      fontWeight: clientMode === o.v ? 600 : 500,
+                      color: clientMode === o.v ? '#2563eb' : '#6b7280',
+                      backgroundColor: clientMode === o.v ? '#dbeafe' : '#fff',
+                      border: '1px solid ' + (clientMode === o.v ? '#93c5fd' : '#e5e7eb'),
+                      borderRadius: 6,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {o.label}
+                  </button>
                 ))}
-              </select>
+              </div>
+
+              {clientMode === 'new' && (
+                <>
+                  <input type="text" placeholder="Client name *" value={newClientName}
+                    onChange={(e) => setNewClientName(e.target.value)} style={inputStyle} />
+                  <input type="text" placeholder="Company (optional)" value={newClientCompany}
+                    onChange={(e) => setNewClientCompany(e.target.value)} style={inputStyle} />
+                  <input type="text" placeholder="Phone" value={newClientPhone}
+                    onChange={(e) => setNewClientPhone(e.target.value)} style={inputStyle} />
+                  <input type="email" placeholder="Email" value={newClientEmail}
+                    onChange={(e) => setNewClientEmail(e.target.value)} style={inputStyle} />
+                </>
+              )}
+
+              {clientMode === 'existing' && (
+                <select
+                  value={newProjectClientId}
+                  onChange={(e) => setNewProjectClientId(e.target.value)}
+                  style={inputStyle}
+                >
+                  <option value="">— Pick a client —</option>
+                  {clients.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}{c.company ? ` — ${c.company}` : ''}</option>
+                  ))}
+                </select>
+              )}
+
               {error && <div style={{ color: '#dc2626', fontSize: '13px', marginBottom: '12px' }}>{error}</div>}
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button
@@ -262,6 +338,11 @@ export default function ProjectsClient({ email }) {
                     setShowNewForm(false);
                     setNewProjectName('');
                     setNewProjectClientId('');
+                    setNewClientName('');
+                    setNewClientCompany('');
+                    setNewClientPhone('');
+                    setNewClientEmail('');
+                    setClientMode('new');
                     setError('');
                   }}
                   style={{
