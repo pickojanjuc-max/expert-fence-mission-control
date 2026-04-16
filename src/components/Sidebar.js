@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
@@ -18,6 +19,7 @@ const CALCS = [
 export default function Sidebar({ email }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -135,6 +137,7 @@ export default function Sidebar({ email }) {
         backgroundColor: '#111827', padding: '10px 16px',
         borderBottom: '1px solid #1f2937', alignItems: 'center', justifyContent: 'space-between',
       }}>
+        {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{
             width: 30, height: 30, backgroundColor: '#2563eb', borderRadius: 5,
@@ -143,13 +146,68 @@ export default function Sidebar({ email }) {
           }}>EF</div>
           <span style={{ color: 'white', fontWeight: 600, fontSize: 14 }}>Expert Fence</span>
         </div>
-        <div style={{ display: 'flex', gap: 12 }}>
-          {NAV.concat(CALCS).map(({ label, href, icon }) => (
-            <a key={href} href={href} style={{ color: active(href) ? '#60a5fa' : '#9ca3af', fontSize: 11, textDecoration: 'none' }}>
-              {icon}
-            </a>
-          ))}
-        </div>
+
+        {/* Hamburger button */}
+        <button
+          onClick={() => setMenuOpen(o => !o)}
+          style={{
+            background: 'none', border: '1px solid #374151', borderRadius: 6,
+            color: '#d1d5db', padding: '5px 10px', cursor: 'pointer', fontSize: 18, lineHeight: 1,
+          }}
+        >
+          {menuOpen ? '✕' : '☰'}
+        </button>
+
+        {/* Dropdown menu */}
+        {menuOpen && (
+          <div style={{
+            position: 'fixed', top: 52, left: 0, right: 0, zIndex: 49,
+            backgroundColor: '#111827', borderBottom: '1px solid #1f2937',
+            padding: '8px 0',
+          }}
+          onClick={() => setMenuOpen(false)}
+          >
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 1, padding: '6px 20px 4px' }}>
+              Workspace
+            </div>
+            {NAV.map(({ label, href, icon }) => (
+              <a key={href} href={href} style={{
+                display: 'flex', alignItems: 'center', gap: 12,
+                padding: '11px 20px', textDecoration: 'none',
+                backgroundColor: active(href) ? '#1d4ed8' : 'transparent',
+                color: active(href) ? 'white' : '#d1d5db',
+                fontSize: 15, fontWeight: active(href) ? 600 : 400,
+              }}>
+                <span style={{ fontSize: 18 }}>{icon}</span>
+                {label}
+              </a>
+            ))}
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 1, padding: '10px 20px 4px' }}>
+              Calculators
+            </div>
+            {CALCS.map(({ label, href, icon }) => (
+              <a key={href} href={href} style={{
+                display: 'flex', alignItems: 'center', gap: 12,
+                padding: '11px 20px', textDecoration: 'none',
+                backgroundColor: active(href) ? '#1d4ed8' : 'transparent',
+                color: active(href) ? 'white' : '#d1d5db',
+                fontSize: 15, fontWeight: active(href) ? 600 : 400,
+              }}>
+                <span style={{ fontSize: 18 }}>{icon}</span>
+                {label}
+              </a>
+            ))}
+            <div style={{ borderTop: '1px solid #1f2937', margin: '8px 0 0' }}>
+              <button onClick={handleSignOut} style={{
+                display: 'block', width: '100%', textAlign: 'left',
+                padding: '11px 20px', background: 'none', border: 'none',
+                color: '#9ca3af', fontSize: 15, cursor: 'pointer',
+              }}>
+                Sign out
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
