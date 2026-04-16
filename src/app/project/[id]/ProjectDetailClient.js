@@ -742,6 +742,7 @@ export default function ProjectDetailClient({ projectId }) {
             </div>
           </div>
         )}
+        </div>
       </div>
     </div>
   );
