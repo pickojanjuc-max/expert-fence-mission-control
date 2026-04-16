@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 const NAV = [
   { label: 'Dashboard', href: '/dashboard', icon: '⊞' },
   { label: 'Projects', href: '/projects', icon: '📋' },
+  { label: 'Schedule', href: '/schedule', icon: '📅' },
 ];
 
 const CALCS = [

@@ -10,7 +10,7 @@ export async function GET() {
   // Fetch projects
   const { data: projects, error } = await supabase
     .from('projects')
-    .select('id, name, status, client_name, created_at, updated_at')
+    .select('id, name, status, client_name, created_at, updated_at, measure_date, install_date')
     .eq('user_id', user.id)
     .order('updated_at', { ascending: false });
 
@@ -65,6 +65,8 @@ export async function POST(request) {
     client_email,
     client_phone,
     notes,
+    measure_date,
+    install_date,
   } = body;
 
   let finalProjectId = project_id;
@@ -102,6 +104,8 @@ export async function POST(request) {
     if (client_email !== undefined) updates.client_email = client_email;
     if (client_phone !== undefined) updates.client_phone = client_phone;
     if (notes !== undefined) updates.notes = notes;
+    if (measure_date !== undefined) updates.measure_date = measure_date || null;
+    if (install_date !== undefined) updates.install_date = install_date || null;
 
     await supabase
       .from('projects')

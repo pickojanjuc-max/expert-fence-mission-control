@@ -240,13 +240,16 @@ export default function ProjectsClient({ email }) {
             Projects
           </h1>
 
-          {/* Sub-tabs: Projects / Clients */}
+          {/* Sub-tabs */}
           <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid #e5e7eb', marginBottom: '20px' }}>
             <a href="/projects" style={{ padding: '10px 18px', fontSize: 14, fontWeight: 600, color: '#111827', borderBottom: '2px solid #2563eb', textDecoration: 'none' }}>
               Jobs
             </a>
             <a href="/clients" style={{ padding: '10px 18px', fontSize: 14, fontWeight: 500, color: '#6b7280', borderBottom: '2px solid transparent', textDecoration: 'none' }}>
               Clients
+            </a>
+            <a href="/schedule" style={{ padding: '10px 18px', fontSize: 14, fontWeight: 500, color: '#6b7280', borderBottom: '2px solid transparent', textDecoration: 'none' }}>
+              Schedule
             </a>
           </div>
 

@@ -79,6 +79,8 @@ export default function ProjectDetailClient({ projectId }) {
   const [clientName, setClientName] = useState('');
   const [clientEmail, setClientEmail] = useState('');
   const [clientPhone, setClientPhone] = useState('');
+  const [measureDate, setMeasureDate] = useState('');
+  const [installDate, setInstallDate] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(false);
@@ -99,6 +101,8 @@ export default function ProjectDetailClient({ projectId }) {
         setClientName(data.project.client_name || '');
         setClientEmail(data.project.client_email || '');
         setClientPhone(data.project.client_phone || '');
+        setMeasureDate(data.project.measure_date ? data.project.measure_date.slice(0, 10) : '');
+        setInstallDate(data.project.install_date ? data.project.install_date.slice(0, 10) : '');
       }
     } catch (e) {
       console.error('Load project error:', e);
@@ -140,6 +144,8 @@ export default function ProjectDetailClient({ projectId }) {
           client_name: clientName,
           client_email: clientEmail,
           client_phone: clientPhone,
+          measure_date: measureDate || null,
+          install_date: installDate || null,
         }),
       });
       const data = await res.json();
@@ -629,6 +635,28 @@ export default function ProjectDetailClient({ projectId }) {
                 <input type="tel" placeholder="Phone" value={clientPhone}
                   onChange={(e) => setClientPhone(e.target.value)} style={inputStyle} />
               </div>
+            </div>
+
+            {/* Schedule dates */}
+            <div style={cardStyle}>
+              <h2 style={sectionTitle}>Schedule</h2>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <div>
+                  <label style={labelStyle}>Measure date</label>
+                  <input type="date" value={measureDate}
+                    onChange={(e) => setMeasureDate(e.target.value)} style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Install date</label>
+                  <input type="date" value={installDate}
+                    onChange={(e) => setInstallDate(e.target.value)} style={inputStyle} />
+                </div>
+              </div>
+              {(measureDate || installDate) && (
+                <a href="/schedule" style={{ display: 'inline-block', marginTop: 8, fontSize: 12, color: '#2563eb', textDecoration: 'none' }}>
+                  View in Schedule →
+                </a>
+              )}
             </div>
 
             {/* Labour */}
