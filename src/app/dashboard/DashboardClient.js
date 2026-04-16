@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import Sidebar from '@/components/Sidebar';
 
 export default function DashboardClient({ email, plan }) {
   const router = useRouter();
@@ -206,60 +207,28 @@ export default function DashboardClient({ email, plan }) {
   };
 
   return (
-    <div style={containerStyle}>
-      {/* Responsive overrides for dashboard */}
+    <div style={{ display: 'flex', minHeight: '100vh', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       <style>{`
         @media (max-width: 900px) {
           .ef-dashboard-grid { grid-template-columns: 1fr 1fr !important; max-width: 620px !important; }
         }
+        @media (max-width: 768px) {
+          .ef-main { padding-top: 70px !important; }
+        }
         @media (max-width: 640px) {
           .ef-dashboard-grid { grid-template-columns: 1fr !important; max-width: 100% !important; gap: 14px !important; }
-          .ef-dashboard-content { padding: 20px 14px !important; }
-          .ef-dashboard-email { display: none !important; }
-          .ef-dashboard-nav { padding: 12px 14px !important; }
+          .ef-dashboard-content { padding: 16px !important; }
           .ef-dashboard-greeting { font-size: 16px !important; margin-bottom: 20px !important; }
           .ef-card-icon { height: 64px !important; font-size: 24px !important; margin-bottom: 12px !important; }
           .ef-card { padding: 16px !important; }
-          .ef-projects-section { max-width: 100% !important; padding: 0 14px !important; }
-          .ef-dashboard-nav-center { gap: 12px !important; }
+          .ef-projects-section { max-width: 100% !important; padding: 0 !important; }
         }
       `}</style>
 
-      {/* Navigation Bar */}
-      <nav style={navStyle} className="ef-dashboard-nav">
-        <div style={navLeftStyle}>
-          <div style={logoBoxStyle}>EF</div>
-          <div style={navTextStyle}>
-            <h1 style={navTitleStyle}>Expert Fence</h1>
-            <p style={navSubtitleStyle}>Mission Control</p>
-          </div>
-        </div>
-        <div style={navCenterStyle} className="ef-dashboard-nav-center">
-          <a href="/clients" style={navLinkStyle} onMouseEnter={(e) => e.target.style.color = '#fff'} onMouseLeave={(e) => e.target.style.color = '#e5e7eb'}>
-            Clients
-          </a>
-          <a href="/projects" style={navLinkStyle} onMouseEnter={(e) => e.target.style.color = '#fff'} onMouseLeave={(e) => e.target.style.color = '#e5e7eb'}>
-            Projects
-          </a>
-        </div>
-        <div style={navRightStyle}>
-          <span style={userEmailStyle} className="ef-dashboard-email">{email}</span>
-          <button
-            style={signOutButtonStyle}
-            onClick={handleSignOut}
-            onMouseEnter={(e) => {
-              e.target.style.backgroundColor = '#b91c1c';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.backgroundColor = '#dc2626';
-            }}
-          >
-            Sign Out
-          </button>
-        </div>
-      </nav>
+      <Sidebar email={email} />
 
-      {/* Content */}
+      {/* Main content */}
+      <div style={{ flex: 1, backgroundColor: '#f9fafb', overflowY: 'auto' }} className="ef-main">
       <div style={contentStyle} className="ef-dashboard-content">
         <div style={greetingStyle} className="ef-dashboard-greeting">Welcome back, {email.split('@')[0]}</div>
 
@@ -498,6 +467,7 @@ export default function DashboardClient({ email, plan }) {
             </div>
           )}
         </div>
+      </div>
       </div>
     </div>
   );

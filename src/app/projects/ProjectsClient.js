@@ -203,9 +203,19 @@ export default function ProjectsClient({ email }) {
       {/* Main content */}
       <div style={{ flex: 1, backgroundColor: '#f9fafb', overflowY: 'auto' }} className="ef-main">
         <div style={{ padding: '24px 32px', maxWidth: '900px', margin: '0 auto', width: '100%' }}>
-          <h1 style={{ fontSize: '24px', fontWeight: '700', color: '#111827', margin: '0 0 20px 0' }}>
+          <h1 style={{ fontSize: '24px', fontWeight: '700', color: '#111827', margin: '0 0 8px 0' }}>
             Projects
           </h1>
+
+          {/* Sub-tabs: Projects / Clients */}
+          <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid #e5e7eb', marginBottom: '20px' }}>
+            <a href="/projects" style={{ padding: '10px 18px', fontSize: 14, fontWeight: 600, color: '#111827', borderBottom: '2px solid #2563eb', textDecoration: 'none' }}>
+              Jobs
+            </a>
+            <a href="/clients" style={{ padding: '10px 18px', fontSize: 14, fontWeight: 500, color: '#6b7280', borderBottom: '2px solid transparent', textDecoration: 'none' }}>
+              Clients
+            </a>
+          </div>
 
           {/* New project form */}
           {showNewForm && (
