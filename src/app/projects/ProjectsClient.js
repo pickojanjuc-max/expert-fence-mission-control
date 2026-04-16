@@ -250,6 +250,23 @@ export default function ProjectsClient({ email }) {
             </a>
           </div>
 
+          {/* Top action bar */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: 12 }}>
+            <div style={{ fontSize: 14, color: '#6b7280' }}>
+              Every job starts as a project. Create one, capture the client, then schedule work and link calculator results.
+            </div>
+            {!showNewForm && (
+              <button
+                onClick={() => setShowNewForm(true)}
+                style={{ ...buttonStyle, whiteSpace: 'nowrap' }}
+                onMouseEnter={(e) => e.target.style.backgroundColor = '#1d4ed8'}
+                onMouseLeave={(e) => e.target.style.backgroundColor = '#2563eb'}
+              >
+                + New Project
+              </button>
+            )}
+          </div>
+
           {/* New project form */}
           {showNewForm && (
             <div style={formStyle}>
