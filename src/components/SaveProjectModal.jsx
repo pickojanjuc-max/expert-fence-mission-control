@@ -185,25 +185,31 @@ export default function SaveProjectModal({
           {currentProjectId ? 'Save Calculation' : 'Save to Project'}
         </h3>
 
-        {/* Mode tabs — only show if not already attached to a project */}
-        {!currentProjectId && (
-          <div style={s.tabs}>
+        {/* Mode tabs — always visible so user can pick where this calc goes */}
+        <div style={s.tabs}>
+          {currentProjectId && (
             <button
-              onClick={() => setMode('new')}
-              style={mode === 'new' ? { ...s.tab, ...s.tabActive } : s.tab}
+              onClick={() => setMode('update')}
+              style={mode === 'update' ? { ...s.tab, ...s.tabActive } : s.tab}
             >
-              New Project
+              Update current
             </button>
-            {existingProjects.length > 0 && (
-              <button
-                onClick={() => setMode('existing')}
-                style={mode === 'existing' ? { ...s.tab, ...s.tabActive } : s.tab}
-              >
-                Existing Project
-              </button>
-            )}
-          </div>
-        )}
+          )}
+          <button
+            onClick={() => setMode('new')}
+            style={mode === 'new' ? { ...s.tab, ...s.tabActive } : s.tab}
+          >
+            New Project
+          </button>
+          {existingProjects.length > 0 && (
+            <button
+              onClick={() => setMode('existing')}
+              style={mode === 'existing' ? { ...s.tab, ...s.tabActive } : s.tab}
+            >
+              Existing Project
+            </button>
+          )}
+        </div>
 
         {/* New project name */}
         {(mode === 'new' || mode === 'update') && (
@@ -343,7 +349,7 @@ export default function SaveProjectModal({
             disabled={saving}
             style={saving ? { ...s.saveBtn, opacity: 0.6, cursor: 'not-allowed' } : s.saveBtn}
           >
-            {saving ? 'Saving...' : currentProjectId ? 'Save' : mode === 'existing' ? 'Add to Project' : 'Create & Save'}
+            {saving ? 'Saving...' : mode === 'update' ? 'Update Calculation' : mode === 'existing' ? 'Add to Project' : 'Create & Save'}
           </button>
         </div>
       </div>
