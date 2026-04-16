@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import Sidebar from '@/components/Sidebar';
 
 function statusColor(s) {
   const map = {
@@ -20,9 +21,19 @@ export default function ProjectsClient({ email }) {
   const router = useRouter();
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showNewForm, setShowNewForm] = useState(false);
+  const [newProjectName, setNewProjectName] = useState('');
+  const [newProjectClientId, setNewProjectClientId] = useState('');
+  const [clients, setClients] = useState([]);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     loadProjects();
+    loadClients();
   }, []);
 
   const loadProjects = async () => {
@@ -36,80 +47,118 @@ export default function ProjectsClient({ email }) {
     setLoading(false);
   };
 
+  const loadClients = async () => {
+    try {
+      const res = await fetch('/api/clients');
+      const data = await res.json();
+      setClients(data.clients || []);
+    } catch (e) {
+      console.error('Load clients error:', e);
+    }
+  };
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     router.push('/login');
   };
 
-  const navStyle = {
-    backgroundColor: '#111827',
-    padding: '16px 24px',
+  const handleNewProject = async () => {
+    if (!newProjectName.trim()) {
+      setError('Project name is required');
+      return;
+    }
+    setSaving(true);
+    setError('');
+    try {
+      const res = await fetch('/api/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newProjectName.trim(),
+          client_id: newProjectClientId || null,
+        }),
+      });
+      const data = await res.json();
+      if (data.project) {
+        router.push(`/project/${data.project.id}`);
+      } else {
+        setError(data.error || 'Failed to create project');
+      }
+    } catch (e) {
+      setError(e.message);
+    }
+    setSaving(false);
+  };
+
+  const handleDeleteProject = async (projectId) => {
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/projects/${projectId}`, { method: 'DELETE' });
+      if (res.ok) {
+        setProjects(projects.filter((p) => p.id !== projectId));
+        setDeleteConfirm(null);
+      } else {
+        const data = await res.json();
+        setError(data.error || 'Failed to delete project');
+      }
+    } catch (e) {
+      setError(e.message);
+    }
+    setDeleting(false);
+  };
+
+  const filterTabsStyle = {
+    display: 'flex',
+    gap: '8px',
+    marginBottom: '24px',
+    flexWrap: 'wrap',
+  };
+
+  const filterTabStyle = (isActive) => ({
+    padding: '6px 12px',
+    fontSize: '13px',
+    fontWeight: isActive ? '600' : '500',
+    borderRadius: '6px',
+    border: '1px solid #e5e7eb',
+    backgroundColor: isActive ? '#dbeafe' : '#fff',
+    color: isActive ? '#2563eb' : '#6b7280',
+    cursor: 'pointer',
+    transition: 'all 0.15s',
+  });
+
+  const cardStyle = {
+    backgroundColor: 'white',
+    border: '1px solid #e5e7eb',
+    borderRadius: '8px',
+    padding: '16px',
+    marginBottom: '12px',
+    cursor: 'pointer',
+    transition: 'all 0.15s',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    borderBottom: '1px solid #1f2937',
   };
 
-  const logoBoxStyle = {
-    width: '40px',
-    height: '40px',
-    backgroundColor: '#2563eb',
+  const formStyle = {
+    backgroundColor: 'white',
+    border: '1px solid #e5e7eb',
+    borderRadius: '8px',
+    padding: '20px',
+    marginBottom: '24px',
+  };
+
+  const inputStyle = {
+    width: '100%',
+    border: '1px solid #e5e7eb',
     borderRadius: '6px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: '16px',
-    marginRight: '12px',
-  };
-
-  const navLeftStyle = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '24px',
-  };
-
-  const navTextStyle = {
-    display: 'flex',
-    flexDirection: 'column',
-  };
-
-  const navTitleStyle = {
-    color: 'white',
-    fontSize: '16px',
-    fontWeight: '600',
-    margin: '0',
-  };
-
-  const navSubtitleStyle = {
-    color: '#9ca3af',
-    fontSize: '13px',
-    margin: '0',
-    marginTop: '2px',
-  };
-
-  const navLinkStyle = {
-    color: '#e5e7eb',
+    padding: '8px 12px',
     fontSize: '14px',
-    textDecoration: 'none',
-    fontWeight: '500',
-    cursor: 'pointer',
+    marginBottom: '12px',
+    boxSizing: 'border-box',
   };
 
-  const navRightStyle = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '16px',
-  };
-
-  const userEmailStyle = {
-    color: '#e5e7eb',
-    fontSize: '14px',
-  };
-
-  const signOutButtonStyle = {
-    backgroundColor: '#dc2626',
+  const buttonStyle = {
+    backgroundColor: '#2563eb',
     color: 'white',
     border: 'none',
     padding: '8px 16px',
@@ -117,34 +166,6 @@ export default function ProjectsClient({ email }) {
     cursor: 'pointer',
     fontSize: '14px',
     fontWeight: '500',
-  };
-
-  const containerStyle = {
-    minHeight: '100vh',
-    backgroundColor: '#f9fafb',
-  };
-
-  const contentStyle = {
-    padding: '32px 24px',
-    maxWidth: '900px',
-    margin: '0 auto',
-  };
-
-  const headingStyle = {
-    fontSize: '24px',
-    fontWeight: '700',
-    color: '#111827',
-    margin: '0 0 24px 0',
-  };
-
-  const cardStyle = {
-    backgroundColor: 'white',
-    border: '1px solid #e5e7eb',
-    borderRadius: '8px',
-    padding: '20px',
-    marginBottom: '12px',
-    cursor: 'pointer',
-    transition: 'all 0.15s',
   };
 
   const emptyStateStyle = {
@@ -156,81 +177,136 @@ export default function ProjectsClient({ email }) {
     color: '#9ca3af',
   };
 
+  const deleteIconStyle = {
+    background: 'none',
+    border: 'none',
+    color: '#dc2626',
+    cursor: 'pointer',
+    fontSize: '16px',
+    padding: '4px 8px',
+  };
+
+  const filteredProjects = statusFilter === 'all'
+    ? projects
+    : projects.filter((p) => p.status === statusFilter);
+
   return (
-    <div style={containerStyle}>
+    <div style={{ display: 'flex', minHeight: '100vh', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       <style>{`
-        @media (max-width: 640px) {
-          .projects-content { padding: 20px 16px !important; }
-          .projects-heading { font-size: 20px !important; }
-          .projects-nav-email { display: none !important; }
-          .projects-nav { padding: 12px 16px !important; }
-          .projects-nav-links { gap: 12px !important; }
+        @media (max-width: 768px) {
+          .ef-main { padding: 70px 16px 24px !important; }
         }
       `}</style>
 
-      <nav style={navStyle} className="projects-nav">
-        <div style={navLeftStyle}>
-          <div style={navLeftStyle}>
-            <div style={logoBoxStyle}>EF</div>
-            <div style={navTextStyle}>
-              <h1 style={navTitleStyle}>Expert Fence</h1>
-              <p style={navSubtitleStyle}>Mission Control</p>
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: '16px' }} className="projects-nav-links">
-            <a href="/dashboard" style={navLinkStyle} onMouseEnter={(e) => e.target.style.color = '#fff'} onMouseLeave={(e) => e.target.style.color = '#e5e7eb'}>
-              Dashboard
-            </a>
-            <a href="/clients" style={navLinkStyle} onMouseEnter={(e) => e.target.style.color = '#fff'} onMouseLeave={(e) => e.target.style.color = '#e5e7eb'}>
-              Clients
-            </a>
-          </div>
-        </div>
-        <div style={navRightStyle}>
-          <span style={userEmailStyle} className="projects-nav-email">{email}</span>
-          <button
-            style={signOutButtonStyle}
-            onClick={handleSignOut}
-            onMouseEnter={(e) => {
-              e.target.style.backgroundColor = '#b91c1c';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.backgroundColor = '#dc2626';
-            }}
-          >
-            Sign Out
-          </button>
-        </div>
-      </nav>
+      <Sidebar email={email} activePage="projects" />
 
-      <div style={contentStyle} className="projects-content">
-        <h1 style={headingStyle} className="projects-heading">Projects</h1>
+      {/* Main content */}
+      <div style={{ flex: 1, backgroundColor: '#f9fafb', overflowY: 'auto' }} className="ef-main">
+        <div style={{ padding: '24px 32px', maxWidth: '900px', margin: '0 auto', width: '100%' }}>
+          <h1 style={{ fontSize: '24px', fontWeight: '700', color: '#111827', margin: '0 0 20px 0' }}>
+            Projects
+          </h1>
 
-        {loading ? (
-          <p style={{ fontSize: '14px', color: '#9ca3af' }}>Loading projects...</p>
-        ) : projects.length === 0 ? (
-          <div style={emptyStateStyle}>
-            <p style={{ margin: 0, fontSize: '14px' }}>No projects yet. Open a calculator and save your first project.</p>
-          </div>
-        ) : (
-          <div>
-            {projects.map((p) => {
-              const sc = statusColor(p.status);
-              return (
-                <div
-                  key={p.id}
-                  style={cardStyle}
-                  onClick={() => router.push(`/project/${p.id}`)}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = '#3b82f6';
-                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.1)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = '#e5e7eb';
-                    e.currentTarget.style.boxShadow = 'none';
+          {/* New project form */}
+          {showNewForm && (
+            <div style={formStyle}>
+              <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', marginTop: 0, marginBottom: '16px' }}>
+                New Project
+              </h3>
+              <input
+                type="text"
+                placeholder="Project name *"
+                value={newProjectName}
+                onChange={(e) => setNewProjectName(e.target.value)}
+                style={inputStyle}
+                autoFocus
+              />
+              <select
+                value={newProjectClientId}
+                onChange={(e) => setNewProjectClientId(e.target.value)}
+                style={inputStyle}
+              >
+                <option value="">— No client —</option>
+                {clients.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+              {error && <div style={{ color: '#dc2626', fontSize: '13px', marginBottom: '12px' }}>{error}</div>}
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  onClick={handleNewProject}
+                  disabled={saving}
+                  style={{
+                    ...buttonStyle,
+                    flex: 1,
+                    opacity: saving ? 0.6 : 1,
+                    cursor: saving ? 'not-allowed' : 'pointer',
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+                  {saving ? 'Creating...' : 'Create Project'}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowNewForm(false);
+                    setNewProjectName('');
+                    setNewProjectClientId('');
+                    setError('');
+                  }}
+                  style={{
+                    ...buttonStyle,
+                    backgroundColor: '#6b7280',
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Status filter tabs */}
+          <div style={filterTabsStyle}>
+            {['all', 'draft', 'quoted', 'approved', 'ordered', 'scheduled', 'complete'].map((s) => (
+              <button
+                key={s}
+                onClick={() => setStatusFilter(s)}
+                style={filterTabStyle(statusFilter === s)}
+              >
+                {s === 'all' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
+              </button>
+            ))}
+          </div>
+
+          {/* Projects list */}
+          {loading ? (
+            <p style={{ fontSize: '14px', color: '#9ca3af' }}>Loading projects...</p>
+          ) : filteredProjects.length === 0 ? (
+            <div style={emptyStateStyle}>
+              <p style={{ margin: 0, fontSize: '14px' }}>
+                {statusFilter === 'all'
+                  ? 'No projects yet. Start by running a calculator and saving your first project.'
+                  : `No ${statusFilter} projects.`}
+              </p>
+            </div>
+          ) : (
+            <div>
+              {filteredProjects.map((p) => {
+                const sc = statusColor(p.status);
+                return (
+                  <div
+                    key={p.id}
+                    style={cardStyle}
+                    onClick={() => router.push(`/project/${p.id}`)}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = '#3b82f6';
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.1)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = '#e5e7eb';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  >
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: '15px', fontWeight: '600', color: '#111827', marginBottom: '4px' }}>
                         {p.name}
@@ -242,26 +318,96 @@ export default function ProjectsClient({ email }) {
                         {new Date(p.updated_at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}
                       </div>
                     </div>
-                    <span
-                      style={{
-                        fontSize: '11px',
-                        fontWeight: '600',
-                        padding: '3px 8px',
-                        borderRadius: '10px',
-                        backgroundColor: sc.bg,
-                        color: sc.text,
-                        whiteSpace: 'nowrap',
-                        marginLeft: '16px',
-                      }}
-                    >
-                      {p.status}
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <span
+                        style={{
+                          fontSize: '11px',
+                          fontWeight: '600',
+                          padding: '3px 8px',
+                          borderRadius: '10px',
+                          backgroundColor: sc.bg,
+                          color: sc.text,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {p.status}
+                      </span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteConfirm(p.id);
+                        }}
+                        style={deleteIconStyle}
+                        title="Delete project"
+                      >
+                        🗑
+                      </button>
+                    </div>
                   </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Delete confirmation modal */}
+          {deleteConfirm && (
+            <div
+              style={{
+                position: 'fixed',
+                inset: 0,
+                backgroundColor: 'rgba(0,0,0,0.4)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 50,
+              }}
+              onClick={() => !deleting && setDeleteConfirm(null)}
+            >
+              <div
+                style={{
+                  backgroundColor: '#fff',
+                  borderRadius: '12px',
+                  padding: '24px',
+                  maxWidth: '400px',
+                  boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <h2 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', marginTop: 0, marginBottom: '8px' }}>
+                  Delete Project?
+                </h2>
+                <p style={{ fontSize: '14px', color: '#6b7280', margin: '0 0 20px 0' }}>
+                  This cannot be undone. The project and all its calculations will be permanently deleted.
+                </p>
+                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                  <button
+                    onClick={() => setDeleteConfirm(null)}
+                    disabled={deleting}
+                    style={{
+                      ...buttonStyle,
+                      backgroundColor: '#6b7280',
+                      cursor: deleting ? 'not-allowed' : 'pointer',
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => handleDeleteProject(deleteConfirm)}
+                    disabled={deleting}
+                    style={{
+                      ...buttonStyle,
+                      backgroundColor: '#dc2626',
+                      cursor: deleting ? 'not-allowed' : 'pointer',
+                      opacity: deleting ? 0.6 : 1,
+                    }}
+                  >
+                    {deleting ? 'Deleting...' : 'Delete'}
+                  </button>
                 </div>
-              );
-            })}
-          </div>
-        )}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -37,6 +37,8 @@ export default function SaveProjectModal({
   const [selectedClientId, setSelectedClientId] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [showNewClient, setShowNewClient] = useState(false);
+  const [newClientData, setNewClientData] = useState({ name: '', company: '', email: '', phone: '' });
 
   // Fetch user's projects and clients when opening in "existing" mode
   useEffect(() => {
@@ -65,6 +67,32 @@ export default function SaveProjectModal({
   }, [show, currentProjectId, currentProjectName, initialLabel]);
 
   if (!show) return null;
+
+  async function handleCreateClient() {
+    if (!newClientData.name.trim()) {
+      setError('Client name is required');
+      return;
+    }
+    try {
+      const res = await fetch('/api/clients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newClientData),
+      });
+      const data = await res.json();
+      if (data.client) {
+        setClients([...clients, data.client]);
+        setSelectedClientId(data.client.id);
+        setShowNewClient(false);
+        setNewClientData({ name: '', company: '', email: '', phone: '' });
+        setError('');
+      } else {
+        setError(data.error || 'Failed to create client');
+      }
+    } catch (e) {
+      setError(e.message);
+    }
+  }
 
   async function handleSave() {
     setSaving(true);
@@ -192,21 +220,107 @@ export default function SaveProjectModal({
         )}
 
         {/* Client picker — only for new projects */}
-        {(mode === 'new' || mode === 'update') && clients.length > 0 && (
+        {(mode === 'new' || mode === 'update') && (
           <div style={{ marginBottom: '12px' }}>
             <label style={s.label}>Client (optional)</label>
-            <select
-              value={selectedClientId}
-              onChange={(e) => setSelectedClientId(e.target.value)}
-              style={s.input}
-            >
-              <option value="">— No client —</option>
-              {clients.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
+            {!showNewClient ? (
+              <>
+                <select
+                  value={selectedClientId}
+                  onChange={(e) => setSelectedClientId(e.target.value)}
+                  style={s.input}
+                >
+                  <option value="">— No client —</option>
+                  {clients.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+                {clients.length > 0 && (
+                  <button
+                    onClick={() => setShowNewClient(true)}
+                    style={{
+                      fontSize: '12px',
+                      color: '#2563eb',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: '4px 0',
+                      marginTop: '6px',
+                    }}
+                  >
+                    + Add new client
+                  </button>
+                )}
+              </>
+            ) : (
+              <>
+                <input
+                  type="text"
+                  placeholder="Client name"
+                  value={newClientData.name}
+                  onChange={(e) => setNewClientData({ ...newClientData, name: e.target.value })}
+                  style={s.input}
+                  autoFocus
+                />
+                <input
+                  type="text"
+                  placeholder="Company"
+                  value={newClientData.company}
+                  onChange={(e) => setNewClientData({ ...newClientData, company: e.target.value })}
+                  style={s.input}
+                />
+                <input
+                  type="email"
+                  placeholder="Email"
+                  value={newClientData.email}
+                  onChange={(e) => setNewClientData({ ...newClientData, email: e.target.value })}
+                  style={s.input}
+                />
+                <input
+                  type="tel"
+                  placeholder="Phone"
+                  value={newClientData.phone}
+                  onChange={(e) => setNewClientData({ ...newClientData, phone: e.target.value })}
+                  style={{ ...s.input, marginBottom: '8px' }}
+                />
+                <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
+                  <button
+                    onClick={handleCreateClient}
+                    style={{
+                      flex: 1,
+                      padding: '6px 12px',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      color: '#fff',
+                      backgroundColor: '#10b981',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Create Client
+                  </button>
+                  <button
+                    onClick={() => setShowNewClient(false)}
+                    style={{
+                      flex: 1,
+                      padding: '6px 12px',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      color: '#6b7280',
+                      backgroundColor: 'none',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         )}
 

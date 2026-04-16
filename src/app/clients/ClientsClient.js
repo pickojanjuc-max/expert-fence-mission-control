@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import Sidebar from '@/components/Sidebar';
 
 export default function ClientsClient({ email }) {
   const router = useRouter();
@@ -12,6 +13,9 @@ export default function ClientsClient({ email }) {
   const [formData, setFormData] = useState({ name: '', company: '', email: '', phone: '', address: '', notes: '' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     loadClients();
@@ -60,105 +64,21 @@ export default function ClientsClient({ email }) {
     setSaving(false);
   };
 
-  const navStyle = {
-    backgroundColor: '#111827',
-    padding: '16px 24px',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderBottom: '1px solid #1f2937',
-  };
-
-  const logoBoxStyle = {
-    width: '40px',
-    height: '40px',
-    backgroundColor: '#2563eb',
-    borderRadius: '6px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: '16px',
-    marginRight: '12px',
-  };
-
-  const navLeftStyle = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '24px',
-  };
-
-  const navTextStyle = {
-    display: 'flex',
-    flexDirection: 'column',
-  };
-
-  const navTitleStyle = {
-    color: 'white',
-    fontSize: '16px',
-    fontWeight: '600',
-    margin: '0',
-  };
-
-  const navSubtitleStyle = {
-    color: '#9ca3af',
-    fontSize: '13px',
-    margin: '0',
-    marginTop: '2px',
-  };
-
-  const navLinkStyle = {
-    color: '#e5e7eb',
-    fontSize: '14px',
-    textDecoration: 'none',
-    fontWeight: '500',
-    cursor: 'pointer',
-    transition: 'color 0.2s',
-  };
-
-  const navRightStyle = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '16px',
-  };
-
-  const userEmailStyle = {
-    color: '#e5e7eb',
-    fontSize: '14px',
-  };
-
-  const signOutButtonStyle = {
-    backgroundColor: '#dc2626',
-    color: 'white',
-    border: 'none',
-    padding: '8px 16px',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: '500',
-    transition: 'background-color 0.2s',
-  };
-
-  const containerStyle = {
-    minHeight: '100vh',
-    backgroundColor: '#f9fafb',
-  };
-
-  const contentStyle = {
-    padding: '32px 24px',
-    maxWidth: '900px',
-    margin: '0 auto',
-  };
-
-  const headingStyle = {
-    fontSize: '24px',
-    fontWeight: '700',
-    color: '#111827',
-    margin: '0 0 24px 0',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  const handleDeleteClient = async (clientId) => {
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/clients/${clientId}`, { method: 'DELETE' });
+      if (res.ok) {
+        setClients(clients.filter((c) => c.id !== clientId));
+        setDeleteConfirm(null);
+      } else {
+        const data = await res.json();
+        setError(data.error || 'Failed to delete client');
+      }
+    } catch (e) {
+      setError(e.message);
+    }
+    setDeleting(false);
   };
 
   const buttonStyle = {
@@ -210,152 +130,153 @@ export default function ClientsClient({ email }) {
     boxSizing: 'border-box',
   };
 
+  const filteredClients = clients.filter(
+    (c) =>
+      c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (c.company && c.company.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
+  const deleteIconStyle = {
+    background: 'none',
+    border: 'none',
+    color: '#dc2626',
+    cursor: 'pointer',
+    fontSize: '16px',
+    padding: '4px 8px',
+  };
+
   return (
-    <div style={containerStyle}>
+    <div style={{ display: 'flex', minHeight: '100vh', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       <style>{`
-        @media (max-width: 640px) {
-          .clients-content { padding: 20px 16px !important; }
-          .clients-heading { font-size: 20px !important; }
-          .clients-nav-email { display: none !important; }
-          .clients-nav { padding: 12px 16px !important; }
-          .clients-nav-links { gap: 12px !important; }
+        @media (max-width: 768px) {
+          .ef-main { padding: 70px 16px 24px !important; }
         }
       `}</style>
 
-      <nav style={navStyle} className="clients-nav">
-        <div style={navLeftStyle}>
-          <div style={navLeftStyle}>
-            <div style={logoBoxStyle}>EF</div>
-            <div style={navTextStyle}>
-              <h1 style={navTitleStyle}>Expert Fence</h1>
-              <p style={navSubtitleStyle}>Mission Control</p>
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: '16px' }} className="clients-nav-links">
-            <a href="/dashboard" style={navLinkStyle} onMouseEnter={(e) => e.target.style.color = '#fff'} onMouseLeave={(e) => e.target.style.color = '#e5e7eb'}>
-              Dashboard
-            </a>
-            <a href="/projects" style={navLinkStyle} onMouseEnter={(e) => e.target.style.color = '#fff'} onMouseLeave={(e) => e.target.style.color = '#e5e7eb'}>
-              Projects
-            </a>
-          </div>
-        </div>
-        <div style={navRightStyle}>
-          <span style={userEmailStyle} className="clients-nav-email">{email}</span>
-          <button
-            style={signOutButtonStyle}
-            onClick={handleSignOut}
-            onMouseEnter={(e) => {
-              e.target.style.backgroundColor = '#b91c1c';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.backgroundColor = '#dc2626';
-            }}
-          >
-            Sign Out
-          </button>
-        </div>
-      </nav>
+      <Sidebar email={email} activePage="clients" />
 
-      <div style={contentStyle} className="clients-content">
-        <div style={headingStyle} className="clients-heading">
-          <span>Clients</span>
-          <button
-            style={buttonStyle}
-            onClick={() => setShowForm(!showForm)}
-            onMouseEnter={(e) => e.target.style.backgroundColor = '#1d4ed8'}
-            onMouseLeave={(e) => e.target.style.backgroundColor = '#2563eb'}
-          >
-            {showForm ? 'Cancel' : '+ New Client'}
-          </button>
-        </div>
-
-        {showForm && (
-          <div style={formStyle}>
-            <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', marginTop: 0, marginBottom: '16px' }}>Add New Client</h3>
-            <input
-              type="text"
-              placeholder="Client name *"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              style={inputStyle}
-              autoFocus
-            />
-            <input
-              type="text"
-              placeholder="Company"
-              value={formData.company}
-              onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-              style={inputStyle}
-            />
-            <input
-              type="email"
-              placeholder="Email"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              style={inputStyle}
-            />
-            <input
-              type="tel"
-              placeholder="Phone"
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              style={inputStyle}
-            />
-            <input
-              type="text"
-              placeholder="Address"
-              value={formData.address}
-              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              style={inputStyle}
-            />
-            <textarea
-              placeholder="Notes"
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              rows="3"
-              style={{ ...inputStyle, marginBottom: '16px', fontFamily: 'inherit', resize: 'vertical' }}
-            />
-            {error && <div style={{ color: '#dc2626', fontSize: '13px', marginBottom: '12px' }}>{error}</div>}
+      <div style={{ flex: 1, backgroundColor: '#f9fafb', overflowY: 'auto' }} className="ef-main">
+        <div style={{ padding: '24px 32px', maxWidth: '900px', margin: '0 auto', width: '100%' }}>
+          <div style={{ fontSize: '24px', fontWeight: '700', color: '#111827', margin: '0 0 24px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>Clients</span>
             <button
-              onClick={handleAddClient}
-              disabled={saving}
-              style={{
-                ...buttonStyle,
-                width: '100%',
-                opacity: saving ? 0.6 : 1,
-                cursor: saving ? 'not-allowed' : 'pointer',
-              }}
+              style={buttonStyle}
+              onClick={() => setShowForm(!showForm)}
+              onMouseEnter={(e) => e.target.style.backgroundColor = '#1d4ed8'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = '#2563eb'}
             >
-              {saving ? 'Saving...' : 'Save Client'}
+              {showForm ? 'Cancel' : '+ New Client'}
             </button>
           </div>
-        )}
 
-        {loading ? (
-          <p style={{ fontSize: '14px', color: '#9ca3af' }}>Loading clients...</p>
-        ) : clients.length === 0 ? (
-          <div style={emptyStateStyle}>
-            <p style={{ margin: 0, fontSize: '14px' }}>No clients yet. Add your first client to get started.</p>
-          </div>
-        ) : (
-          <div>
-            {clients.map((client) => (
-              <div
-                key={client.id}
-                style={cardStyle}
-                onClick={() => router.push(`/clients/${client.id}`)}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = '#3b82f6';
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.1)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = '#e5e7eb';
-                  e.currentTarget.style.boxShadow = 'none';
+          {showForm && (
+            <div style={formStyle}>
+              <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', marginTop: 0, marginBottom: '16px' }}>Add New Client</h3>
+              <input
+                type="text"
+                placeholder="Client name *"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                style={inputStyle}
+                autoFocus
+              />
+              <input
+                type="text"
+                placeholder="Company"
+                value={formData.company}
+                onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                style={inputStyle}
+              />
+              <input
+                type="email"
+                placeholder="Email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                style={inputStyle}
+              />
+              <input
+                type="tel"
+                placeholder="Phone"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                style={inputStyle}
+              />
+              <input
+                type="text"
+                placeholder="Address"
+                value={formData.address}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                style={inputStyle}
+              />
+              <textarea
+                placeholder="Notes"
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                rows="3"
+                style={{ ...inputStyle, marginBottom: '16px', fontFamily: 'inherit', resize: 'vertical' }}
+              />
+              {error && <div style={{ color: '#dc2626', fontSize: '13px', marginBottom: '12px' }}>{error}</div>}
+              <button
+                onClick={handleAddClient}
+                disabled={saving}
+                style={{
+                  ...buttonStyle,
+                  width: '100%',
+                  opacity: saving ? 0.6 : 1,
+                  cursor: saving ? 'not-allowed' : 'pointer',
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
-                  <div>
+                {saving ? 'Saving...' : 'Save Client'}
+              </button>
+            </div>
+          )}
+
+          {/* Search */}
+          {clients.length > 0 && !showForm && (
+            <div style={{ marginBottom: '24px' }}>
+              <input
+                type="text"
+                placeholder="Search clients..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{
+                  ...inputStyle,
+                  marginBottom: '0',
+                }}
+              />
+            </div>
+          )}
+
+          {loading ? (
+            <p style={{ fontSize: '14px', color: '#9ca3af' }}>Loading clients...</p>
+          ) : filteredClients.length === 0 ? (
+            <div style={emptyStateStyle}>
+              <p style={{ margin: 0, fontSize: '14px' }}>
+                {searchTerm ? 'No matching clients.' : 'No clients yet. Add your first client to get started.'}
+              </p>
+            </div>
+          ) : (
+            <div>
+              {filteredClients.map((client) => (
+                <div
+                  key={client.id}
+                  style={{
+                    ...cardStyle,
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                  onClick={() => router.push(`/clients/${client.id}`)}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = '#3b82f6';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = '#e5e7eb';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
+                >
+                  <div style={{ flex: 1 }}>
                     <div style={{ fontSize: '15px', fontWeight: '600', color: '#111827', marginBottom: '4px' }}>
                       {client.name}
                     </div>
@@ -375,12 +296,83 @@ export default function ClientsClient({ email }) {
                       </div>
                     )}
                   </div>
-                  <span style={{ fontSize: '14px', color: '#d1d5db' }}>→</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <span style={{ fontSize: '14px', color: '#d1d5db' }}>→</span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeleteConfirm(client.id);
+                      }}
+                      style={deleteIconStyle}
+                      title="Delete client"
+                    >
+                      🗑
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Delete confirmation modal */}
+          {deleteConfirm && (
+            <div
+              style={{
+                position: 'fixed',
+                inset: 0,
+                backgroundColor: 'rgba(0,0,0,0.4)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 50,
+              }}
+              onClick={() => !deleting && setDeleteConfirm(null)}
+            >
+              <div
+                style={{
+                  backgroundColor: '#fff',
+                  borderRadius: '12px',
+                  padding: '24px',
+                  maxWidth: '400px',
+                  boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <h2 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', marginTop: 0, marginBottom: '8px' }}>
+                  Delete Client?
+                </h2>
+                <p style={{ fontSize: '14px', color: '#6b7280', margin: '0 0 20px 0' }}>
+                  This cannot be undone. Associated projects will keep the client information but the client record will be deleted.
+                </p>
+                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                  <button
+                    onClick={() => setDeleteConfirm(null)}
+                    disabled={deleting}
+                    style={{
+                      ...buttonStyle,
+                      backgroundColor: '#6b7280',
+                      cursor: deleting ? 'not-allowed' : 'pointer',
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => handleDeleteClient(deleteConfirm)}
+                    disabled={deleting}
+                    style={{
+                      ...buttonStyle,
+                      backgroundColor: '#dc2626',
+                      cursor: deleting ? 'not-allowed' : 'pointer',
+                      opacity: deleting ? 0.6 : 1,
+                    }}
+                  >
+                    {deleting ? 'Deleting...' : 'Delete'}
+                  </button>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

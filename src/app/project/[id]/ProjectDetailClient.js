@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Sidebar from '@/components/Sidebar';
 
 // ── Helpers ────────────────────────────────────────────────────────────
 function money(v) { return '$' + Number(v || 0).toFixed(2); }
@@ -80,6 +81,8 @@ export default function ProjectDetailClient({ projectId }) {
   const [clientPhone, setClientPhone] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState('');
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // ── Load project ────────────────────────────────────────────────────
   const loadProject = useCallback(async () => {
@@ -171,6 +174,23 @@ export default function ProjectDetailClient({ projectId }) {
       });
       setProject((prev) => ({ ...prev, status: newStatus }));
     } catch {}
+  }
+
+  // ── Delete Project ──────────────────────────────────────────────────
+  async function handleDeleteProject() {
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/projects/${projectId}`, { method: 'DELETE' });
+      if (res.ok) {
+        router.push('/projects');
+      } else {
+        const data = await res.json();
+        setSaveMsg('Error: ' + (data.error || 'Failed to delete'));
+      }
+    } catch (e) {
+      setSaveMsg('Error: ' + e.message);
+    }
+    setDeleting(false);
   }
 
   // ── Generate Quote PDF ──────────────────────────────────────────────
@@ -401,29 +421,35 @@ export default function ProjectDetailClient({ projectId }) {
 
   // ── Render ──────────────────────────────────────────────────────────
   return (
-    <div style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif', backgroundColor: '#f9fafb', minHeight: '100vh' }}>
-      {/* Top bar */}
-      <div style={{ backgroundColor: '#fff', borderBottom: '1px solid #e5e7eb', padding: '12px 16px' }}>
-        <div style={{ maxWidth: '960px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <a href="/projects" style={{ fontSize: '14px', color: '#2563eb', textDecoration: 'none', fontWeight: 500 }}>← Projects</a>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {saveMsg && <span style={{ fontSize: '12px', color: '#10b981', fontWeight: 500 }}>{saveMsg}</span>}
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              style={{
-                padding: '6px 14px', fontSize: '13px', fontWeight: 600, color: '#fff',
-                backgroundColor: '#10b981', border: 'none', borderRadius: '6px',
-                cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1,
-              }}
-            >
-              {saving ? 'Saving...' : 'Save'}
-            </button>
-          </div>
-        </div>
-      </div>
+    <div style={{ display: 'flex', minHeight: '100vh', fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, sans-serif' }}>
+      <style>{`
+        @media (max-width: 768px) {
+          .ef-main { padding: 70px 16px 24px !important; }
+        }
+      `}</style>
 
-      <div style={{ maxWidth: '960px', margin: '0 auto', padding: '20px 16px' }}>
+      <Sidebar email="" activePage="projects" />
+
+      {/* Main content */}
+      <div style={{ flex: 1, backgroundColor: '#f9fafb', overflowY: 'auto' }} className="ef-main">
+        <div style={{ padding: '24px 32px', maxWidth: '960px', margin: '0 auto', width: '100%' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <a href="/projects" style={{ fontSize: '14px', color: '#2563eb', textDecoration: 'none', fontWeight: 500 }}>← Projects</a>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {saveMsg && <span style={{ fontSize: '12px', color: '#10b981', fontWeight: 500 }}>{saveMsg}</span>}
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                style={{
+                  padding: '6px 14px', fontSize: '13px', fontWeight: 600, color: '#fff',
+                  backgroundColor: '#10b981', border: 'none', borderRadius: '6px',
+                  cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1,
+                }}
+              >
+                {saving ? 'Saving...' : 'Save'}
+              </button>
+            </div>
+          </div>
         {/* Project header */}
         <div style={{ marginBottom: '24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
@@ -696,9 +722,26 @@ export default function ProjectDetailClient({ projectId }) {
               <button onClick={generatePurchaseOrderPdf} style={{ ...actionBtnStyle, backgroundColor: '#1e3a5f' }}>
                 📋 Generate Purchase Order PDF
               </button>
+              <button onClick={() => setDeleteConfirm(true)} style={{ ...actionBtnStyle, backgroundColor: '#dc2626', marginTop: '8px' }}>
+                🗑 Delete Project
+              </button>
             </div>
           </div>
         </div>
+
+        {/* Delete confirmation modal */}
+        {deleteConfirm && (
+          <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }} onClick={() => !deleting && setDeleteConfirm(false)}>
+            <div style={{ backgroundColor: '#fff', borderRadius: '12px', padding: '24px', maxWidth: '400px', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }} onClick={(e) => e.stopPropagation()}>
+              <h2 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', marginTop: 0, marginBottom: '8px' }}>Delete Project?</h2>
+              <p style={{ fontSize: '14px', color: '#6b7280', margin: '0 0 20px 0' }}>This cannot be undone. The project and all its calculations will be permanently deleted.</p>
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                <button onClick={() => setDeleteConfirm(false)} disabled={deleting} style={{ padding: '6px 14px', fontSize: '13px', fontWeight: 600, color: '#6b7280', backgroundColor: '#f3f4f6', border: 'none', borderRadius: '6px', cursor: deleting ? 'not-allowed' : 'pointer' }}>Cancel</button>
+                <button onClick={handleDeleteProject} disabled={deleting} style={{ padding: '6px 14px', fontSize: '13px', fontWeight: 600, color: '#fff', backgroundColor: '#dc2626', border: 'none', borderRadius: '6px', cursor: deleting ? 'not-allowed' : 'pointer', opacity: deleting ? 0.6 : 1 }}>{deleting ? 'Deleting...' : 'Delete'}</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

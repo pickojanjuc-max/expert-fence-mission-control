@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import Sidebar from '@/components/Sidebar';
 
 function statusColor(s) {
   const map = {
@@ -101,95 +102,6 @@ export default function ClientDetailClient({ clientId, email }) {
     }
   };
 
-  const navStyle = {
-    backgroundColor: '#111827',
-    padding: '16px 24px',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderBottom: '1px solid #1f2937',
-  };
-
-  const logoBoxStyle = {
-    width: '40px',
-    height: '40px',
-    backgroundColor: '#2563eb',
-    borderRadius: '6px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: '16px',
-    marginRight: '12px',
-  };
-
-  const navLeftStyle = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '24px',
-  };
-
-  const navTextStyle = {
-    display: 'flex',
-    flexDirection: 'column',
-  };
-
-  const navTitleStyle = {
-    color: 'white',
-    fontSize: '16px',
-    fontWeight: '600',
-    margin: '0',
-  };
-
-  const navSubtitleStyle = {
-    color: '#9ca3af',
-    fontSize: '13px',
-    margin: '0',
-    marginTop: '2px',
-  };
-
-  const navLinkStyle = {
-    color: '#e5e7eb',
-    fontSize: '14px',
-    textDecoration: 'none',
-    fontWeight: '500',
-    cursor: 'pointer',
-  };
-
-  const navRightStyle = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '16px',
-  };
-
-  const userEmailStyle = {
-    color: '#e5e7eb',
-    fontSize: '14px',
-  };
-
-  const signOutButtonStyle = {
-    backgroundColor: '#dc2626',
-    color: 'white',
-    border: 'none',
-    padding: '8px 16px',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: '500',
-  };
-
-  const containerStyle = {
-    minHeight: '100vh',
-    backgroundColor: '#f9fafb',
-  };
-
-  const contentStyle = {
-    padding: '32px 24px',
-    maxWidth: '900px',
-    margin: '0 auto',
-  };
-
   const backLinkStyle = {
     fontSize: '14px',
     color: '#2563eb',
@@ -231,24 +143,12 @@ export default function ClientDetailClient({ clientId, email }) {
 
   if (loading) {
     return (
-      <div style={containerStyle}>
-        <nav style={navStyle}>
-          <div style={navLeftStyle}>
-            <div style={navLeftStyle}>
-              <div style={logoBoxStyle}>EF</div>
-              <div style={navTextStyle}>
-                <h1 style={navTitleStyle}>Expert Fence</h1>
-                <p style={navSubtitleStyle}>Mission Control</p>
-              </div>
-            </div>
+      <div style={{ display: 'flex', minHeight: '100vh', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+        <Sidebar email={email} activePage="clients" />
+        <div style={{ flex: 1, backgroundColor: '#f9fafb', overflowY: 'auto' }} className="ef-main">
+          <div style={{ padding: '24px 32px', maxWidth: '900px', margin: '0 auto', width: '100%' }}>
+            <p style={{ color: '#9ca3af' }}>Loading client...</p>
           </div>
-          <div style={navRightStyle}>
-            <span style={userEmailStyle}>{email}</span>
-            <button style={signOutButtonStyle} onClick={handleSignOut}>Sign Out</button>
-          </div>
-        </nav>
-        <div style={contentStyle}>
-          <p style={{ color: '#9ca3af' }}>Loading client...</p>
         </div>
       </div>
     );
@@ -256,248 +156,222 @@ export default function ClientDetailClient({ clientId, email }) {
 
   if (!client) {
     return (
-      <div style={containerStyle}>
-        <nav style={navStyle}>
-          <div style={navLeftStyle}>
-            <div style={navLeftStyle}>
-              <div style={logoBoxStyle}>EF</div>
-              <div style={navTextStyle}>
-                <h1 style={navTitleStyle}>Expert Fence</h1>
-                <p style={navSubtitleStyle}>Mission Control</p>
-              </div>
-            </div>
+      <div style={{ display: 'flex', minHeight: '100vh', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+        <Sidebar email={email} activePage="clients" />
+        <div style={{ flex: 1, backgroundColor: '#f9fafb', overflowY: 'auto' }} className="ef-main">
+          <div style={{ padding: '24px 32px', maxWidth: '900px', margin: '0 auto', width: '100%' }}>
+            <p style={{ color: '#dc2626' }}>Client not found</p>
+            <a href="/clients" style={backLinkStyle}>← Back to Clients</a>
           </div>
-        </nav>
-        <div style={contentStyle}>
-          <p style={{ color: '#dc2626' }}>Client not found</p>
-          <a href="/clients" style={backLinkStyle}>← Back to Clients</a>
         </div>
       </div>
     );
   }
 
   return (
-    <div style={containerStyle}>
+    <div style={{ display: 'flex', minHeight: '100vh', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       <style>{`
-        @media (max-width: 640px) {
-          .client-content { padding: 20px 16px !important; }
-          .client-nav { padding: 12px 16px !important; }
-          .client-nav-email { display: none !important; }
+        @media (max-width: 768px) {
+          .ef-main { padding: 70px 16px 24px !important; }
         }
       `}</style>
 
-      <nav style={navStyle} className="client-nav">
-        <div style={navLeftStyle}>
-          <div style={navLeftStyle}>
-            <div style={logoBoxStyle}>EF</div>
-            <div style={navTextStyle}>
-              <h1 style={navTitleStyle}>Expert Fence</h1>
-              <p style={navSubtitleStyle}>Mission Control</p>
+      <Sidebar email={email} activePage="clients" />
+
+      <div style={{ flex: 1, backgroundColor: '#f9fafb', overflowY: 'auto' }} className="ef-main">
+        <div style={{ padding: '24px 32px', maxWidth: '900px', margin: '0 auto', width: '100%' }}>
+          <a href="/clients" style={backLinkStyle}>← Back to Clients</a>
+
+          <div style={cardStyle}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '16px' }}>
+              <h1 style={{ margin: 0, fontSize: '22px', fontWeight: '700', color: '#111827' }}>
+                {editing ? 'Edit Client' : client.name}
+              </h1>
+              {!editing && (
+                <button
+                  onClick={() => setEditing(true)}
+                  style={buttonStyle}
+                  onMouseEnter={(e) => e.target.style.backgroundColor = '#1d4ed8'}
+                  onMouseLeave={(e) => e.target.style.backgroundColor = '#2563eb'}
+                >
+                  Edit
+                </button>
+              )}
             </div>
-          </div>
-          <div style={{ display: 'flex', gap: '16px' }}>
-            <a href="/dashboard" style={navLinkStyle} onMouseEnter={(e) => e.target.style.color = '#fff'} onMouseLeave={(e) => e.target.style.color = '#e5e7eb'}>Dashboard</a>
-            <a href="/clients" style={navLinkStyle} onMouseEnter={(e) => e.target.style.color = '#fff'} onMouseLeave={(e) => e.target.style.color = '#e5e7eb'}>Clients</a>
-          </div>
-        </div>
-        <div style={navRightStyle}>
-          <span style={userEmailStyle} className="client-nav-email">{email}</span>
-          <button style={signOutButtonStyle} onClick={handleSignOut}>Sign Out</button>
-        </div>
-      </nav>
 
-      <div style={contentStyle} className="client-content">
-        <a href="/clients" style={backLinkStyle}>← Back to Clients</a>
+            {editing ? (
+              <div>
+                <input
+                  type="text"
+                  placeholder="Client name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  style={inputStyle}
+                />
+                <input
+                  type="text"
+                  placeholder="Company"
+                  value={formData.company}
+                  onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                  style={inputStyle}
+                />
+                <input
+                  type="email"
+                  placeholder="Email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  style={inputStyle}
+                />
+                <input
+                  type="tel"
+                  placeholder="Phone"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  style={inputStyle}
+                />
+                <input
+                  type="text"
+                  placeholder="Address"
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  style={inputStyle}
+                />
+                <textarea
+                  placeholder="Notes"
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  rows="3"
+                  style={{ ...inputStyle, marginBottom: '16px', fontFamily: 'inherit', resize: 'vertical' }}
+                />
+                {error && <div style={{ color: '#dc2626', fontSize: '13px', marginBottom: '12px' }}>{error}</div>}
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={handleSave}
+                    disabled={saving}
+                    style={{
+                      ...buttonStyle,
+                      opacity: saving ? 0.6 : 1,
+                      cursor: saving ? 'not-allowed' : 'pointer',
+                    }}
+                  >
+                    {saving ? 'Saving...' : 'Save'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setEditing(false);
+                      setFormData(client);
+                      setError('');
+                    }}
+                    style={{
+                      ...buttonStyle,
+                      backgroundColor: '#6b7280',
+                    }}
+                    onMouseEnter={(e) => e.target.style.backgroundColor = '#4b5563'}
+                    onMouseLeave={(e) => e.target.style.backgroundColor = '#6b7280'}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', fontSize: '14px' }}>
+                {client.company && (
+                  <div>
+                    <div style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', marginBottom: '4px' }}>Company</div>
+                    <div style={{ color: '#111827' }}>{client.company}</div>
+                  </div>
+                )}
+                {client.email && (
+                  <div>
+                    <div style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', marginBottom: '4px' }}>Email</div>
+                    <div style={{ color: '#111827' }}>{client.email}</div>
+                  </div>
+                )}
+                {client.phone && (
+                  <div>
+                    <div style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', marginBottom: '4px' }}>Phone</div>
+                    <div style={{ color: '#111827' }}>{client.phone}</div>
+                  </div>
+                )}
+                {client.address && (
+                  <div>
+                    <div style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', marginBottom: '4px' }}>Address</div>
+                    <div style={{ color: '#111827' }}>{client.address}</div>
+                  </div>
+                )}
+                {client.notes && (
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <div style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', marginBottom: '4px' }}>Notes</div>
+                    <div style={{ color: '#111827' }}>{client.notes}</div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
-        <div style={cardStyle}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '16px' }}>
-            <h1 style={{ margin: 0, fontSize: '22px', fontWeight: '700', color: '#111827' }}>
-              {editing ? 'Edit Client' : client.name}
-            </h1>
-            {!editing && (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h2 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#111827' }}>Projects</h2>
               <button
-                onClick={() => setEditing(true)}
+                onClick={handleNewProject}
                 style={buttonStyle}
                 onMouseEnter={(e) => e.target.style.backgroundColor = '#1d4ed8'}
                 onMouseLeave={(e) => e.target.style.backgroundColor = '#2563eb'}
               >
-                Edit
+                + New Project
               </button>
+            </div>
+
+            {projects.length === 0 ? (
+              <div style={{ ...cardStyle, textAlign: 'center', color: '#9ca3af' }}>
+                No projects yet. Create your first project for this client.
+              </div>
+            ) : (
+              <div>
+                {projects.map((p) => {
+                  const sc = statusColor(p.status);
+                  return (
+                    <div
+                      key={p.id}
+                      style={cardStyle}
+                      onClick={() => router.push(`/project/${p.id}`)}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = '#3b82f6';
+                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.1)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = '#e5e7eb';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+                        <div>
+                          <div style={{ fontSize: '15px', fontWeight: '600', color: '#111827' }}>
+                            {p.name}
+                          </div>
+                          <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>
+                            {new Date(p.updated_at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </div>
+                        </div>
+                        <span
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: '600',
+                            padding: '3px 8px',
+                            borderRadius: '10px',
+                            backgroundColor: sc.bg,
+                            color: sc.text,
+                          }}
+                        >
+                          {p.status}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
-
-          {editing ? (
-            <div>
-              <input
-                type="text"
-                placeholder="Client name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                style={inputStyle}
-              />
-              <input
-                type="text"
-                placeholder="Company"
-                value={formData.company}
-                onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                style={inputStyle}
-              />
-              <input
-                type="email"
-                placeholder="Email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                style={inputStyle}
-              />
-              <input
-                type="tel"
-                placeholder="Phone"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                style={inputStyle}
-              />
-              <input
-                type="text"
-                placeholder="Address"
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                style={inputStyle}
-              />
-              <textarea
-                placeholder="Notes"
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                rows="3"
-                style={{ ...inputStyle, marginBottom: '16px', fontFamily: 'inherit', resize: 'vertical' }}
-              />
-              {error && <div style={{ color: '#dc2626', fontSize: '13px', marginBottom: '12px' }}>{error}</div>}
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button
-                  onClick={handleSave}
-                  disabled={saving}
-                  style={{
-                    ...buttonStyle,
-                    opacity: saving ? 0.6 : 1,
-                    cursor: saving ? 'not-allowed' : 'pointer',
-                  }}
-                >
-                  {saving ? 'Saving...' : 'Save'}
-                </button>
-                <button
-                  onClick={() => {
-                    setEditing(false);
-                    setFormData(client);
-                    setError('');
-                  }}
-                  style={{
-                    ...buttonStyle,
-                    backgroundColor: '#6b7280',
-                  }}
-                  onMouseEnter={(e) => e.target.style.backgroundColor = '#4b5563'}
-                  onMouseLeave={(e) => e.target.style.backgroundColor = '#6b7280'}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', fontSize: '14px' }}>
-              {client.company && (
-                <div>
-                  <div style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', marginBottom: '4px' }}>Company</div>
-                  <div style={{ color: '#111827' }}>{client.company}</div>
-                </div>
-              )}
-              {client.email && (
-                <div>
-                  <div style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', marginBottom: '4px' }}>Email</div>
-                  <div style={{ color: '#111827' }}>{client.email}</div>
-                </div>
-              )}
-              {client.phone && (
-                <div>
-                  <div style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', marginBottom: '4px' }}>Phone</div>
-                  <div style={{ color: '#111827' }}>{client.phone}</div>
-                </div>
-              )}
-              {client.address && (
-                <div>
-                  <div style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', marginBottom: '4px' }}>Address</div>
-                  <div style={{ color: '#111827' }}>{client.address}</div>
-                </div>
-              )}
-              {client.notes && (
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <div style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', marginBottom: '4px' }}>Notes</div>
-                  <div style={{ color: '#111827' }}>{client.notes}</div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h2 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#111827' }}>Projects</h2>
-            <button
-              onClick={handleNewProject}
-              style={buttonStyle}
-              onMouseEnter={(e) => e.target.style.backgroundColor = '#1d4ed8'}
-              onMouseLeave={(e) => e.target.style.backgroundColor = '#2563eb'}
-            >
-              + New Project
-            </button>
-          </div>
-
-          {projects.length === 0 ? (
-            <div style={{ ...cardStyle, textAlign: 'center', color: '#9ca3af' }}>
-              No projects yet. Create your first project for this client.
-            </div>
-          ) : (
-            <div>
-              {projects.map((p) => {
-                const sc = statusColor(p.status);
-                return (
-                  <div
-                    key={p.id}
-                    style={cardStyle}
-                    onClick={() => router.push(`/project/${p.id}`)}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = '#3b82f6';
-                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.1)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = '#e5e7eb';
-                      e.currentTarget.style.boxShadow = 'none';
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
-                      <div>
-                        <div style={{ fontSize: '15px', fontWeight: '600', color: '#111827' }}>
-                          {p.name}
-                        </div>
-                        <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>
-                          {new Date(p.updated_at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}
-                        </div>
-                      </div>
-                      <span
-                        style={{
-                          fontSize: '11px',
-                          fontWeight: '600',
-                          padding: '3px 8px',
-                          borderRadius: '10px',
-                          backgroundColor: sc.bg,
-                          color: sc.text,
-                        }}
-                      >
-                        {p.status}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
         </div>
       </div>
     </div>
