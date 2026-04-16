@@ -9,6 +9,7 @@ import RunSetupPanel from "@/components/balustrade/RunSetupPanel";
 import SidesPanel from "@/components/balustrade/SidesPanel";
 import BOMPanel from "@/components/balustrade/BOMPanel";
 import SaveProjectModal from "@/components/SaveProjectModal";
+import { COST_MAP } from "@/lib/costData";
 
 // ── Session persistence ──────────────────────────────────────────────
 const STORAGE_KEY = "ef_balustrade_calc_state";
@@ -126,11 +127,18 @@ export default function Calculator() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Build current BOM for saving
+  // Build current BOM for saving — enrich with pricing so project detail shows correct totals
   function getCurrentBom() {
     try {
       const bomResult = buildBOM(runs, finishes, buildIntersectionMap(runCount, shape, sharedCorners), shape, { skuFamily: "balustrade" });
-      return { consolidated: bomResult.consolidated, unsolved: bomResult.unsolved };
+      const enriched = (bomResult.consolidated || []).map((r) => {
+        const key = String(r.sku || '').toUpperCase();
+        const cost = COST_MAP[key];
+        const unit = cost?.sell ?? 0;
+        const line = Math.round(unit * (Number(r.qty) || 0) * 100) / 100;
+        return { ...r, 'Unit Sell (ex GST)': unit, 'Line Sell (ex GST)': line };
+      });
+      return { consolidated: enriched, unsolved: bomResult.unsolved };
     } catch { return null; }
   }
 

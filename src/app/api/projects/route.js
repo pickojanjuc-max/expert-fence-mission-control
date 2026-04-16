@@ -67,6 +67,7 @@ export async function POST(request) {
     notes,
     measure_date,
     install_date,
+    site_contact,
   } = body;
 
   let finalProjectId = project_id;
@@ -106,6 +107,7 @@ export async function POST(request) {
     if (notes !== undefined) updates.notes = notes;
     if (measure_date !== undefined) updates.measure_date = measure_date || null;
     if (install_date !== undefined) updates.install_date = install_date || null;
+    if (site_contact !== undefined) updates.site_contact = site_contact;
 
     await supabase
       .from('projects')

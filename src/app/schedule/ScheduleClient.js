@@ -38,11 +38,29 @@ function StatusBadge({ status, small }) {
 
 // ─── BOARD VIEW ──────────────────────────────────────────────────────────────
 function BoardView({ projects, onStatusChange, onProjectClick }) {
+  const [dragOverStatus, setDragOverStatus] = useState(null);
+
+  const handleDragOver = (e, status) => {
+    e.preventDefault();
+    setDragOverStatus(status);
+  };
+
+  const handleDrop = (e, status) => {
+    e.preventDefault();
+    setDragOverStatus(null);
+    const projectId = e.dataTransfer.getData('projectId');
+    const currentStatus = e.dataTransfer.getData('currentStatus');
+    if (projectId && status !== currentStatus) {
+      onStatusChange(projectId, status);
+    }
+  };
+
   return (
     <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 12, alignItems: 'flex-start' }}>
       {STATUSES.map(status => {
         const cols = projects.filter(p => p.status === status);
         const c = STATUS_COLORS[status];
+        const isOver = dragOverStatus === status;
         return (
           <div key={status} style={{ minWidth: 200, flex: '0 0 200px' }}>
             <div style={{
@@ -54,12 +72,25 @@ function BoardView({ projects, onStatusChange, onProjectClick }) {
               {status}
               <span style={{ fontWeight: 400, fontSize: 11 }}>{cols.length}</span>
             </div>
-            <div style={{ backgroundColor: '#f9fafb', border: `1px solid ${c.border}`, borderTop: 'none', borderRadius: '0 0 6px 6px', minHeight: 80, padding: 6 }}>
+            <div
+              onDragOver={e => handleDragOver(e, status)}
+              onDragLeave={() => setDragOverStatus(null)}
+              onDrop={e => handleDrop(e, status)}
+              style={{
+                backgroundColor: isOver ? '#eff6ff' : '#f9fafb',
+                border: `1px solid ${isOver ? '#3b82f6' : c.border}`,
+                borderTop: 'none', borderRadius: '0 0 6px 6px',
+                minHeight: 80, padding: 6,
+                transition: 'background 0.15s, border-color 0.15s',
+              }}
+            >
               {cols.map(p => (
                 <BoardCard key={p.id} project={p} onStatusChange={onStatusChange} onProjectClick={onProjectClick} />
               ))}
               {cols.length === 0 && (
-                <div style={{ padding: '12px 8px', fontSize: 12, color: '#9ca3af', textAlign: 'center' }}>—</div>
+                <div style={{ padding: '12px 8px', fontSize: 12, color: isOver ? '#3b82f6' : '#9ca3af', textAlign: 'center' }}>
+                  {isOver ? 'Drop here' : '—'}
+                </div>
               )}
             </div>
           </div>
@@ -71,17 +102,30 @@ function BoardView({ projects, onStatusChange, onProjectClick }) {
 
 function BoardCard({ project, onStatusChange, onProjectClick }) {
   const [showMenu, setShowMenu] = useState(false);
+  const [dragging, setDragging] = useState(false);
+
+  const handleDragStart = (e) => {
+    e.dataTransfer.setData('projectId', project.id);
+    e.dataTransfer.setData('currentStatus', project.status);
+    e.dataTransfer.effectAllowed = 'move';
+    setDragging(true);
+  };
+
   return (
     <div
+      draggable
+      onDragStart={handleDragStart}
+      onDragEnd={() => setDragging(false)}
       style={{
         backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: 6,
-        padding: '10px 10px 8px', marginBottom: 6, cursor: 'pointer',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-        transition: 'box-shadow 0.15s',
+        padding: '10px 10px 8px', marginBottom: 6, cursor: 'grab',
+        boxShadow: dragging ? '0 8px 24px rgba(0,0,0,0.15)' : '0 1px 3px rgba(0,0,0,0.06)',
+        opacity: dragging ? 0.5 : 1,
+        transition: 'box-shadow 0.15s, opacity 0.15s',
       }}
-      onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 12px rgba(59,130,246,0.12)'}
-      onMouseLeave={e => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.06)'}
-      onClick={() => onProjectClick(project.id)}
+      onMouseEnter={e => { if (!dragging) e.currentTarget.style.boxShadow = '0 4px 12px rgba(59,130,246,0.12)'; }}
+      onMouseLeave={e => { if (!dragging) e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.06)'; }}
+      onClick={() => !dragging && onProjectClick(project.id)}
     >
       <div style={{ fontSize: 13, fontWeight: 600, color: '#111827', marginBottom: 3, lineHeight: 1.3 }}>
         {project.name}
@@ -101,7 +145,7 @@ function BoardCard({ project, onStatusChange, onProjectClick }) {
           </span>
         )}
       </div>
-      {/* Move status */}
+      {/* Move status dropdown — keep for mobile where drag isn't available */}
       <div style={{ marginTop: 8, position: 'relative' }} onClick={e => e.stopPropagation()}>
         <button
           onClick={() => setShowMenu(!showMenu)}

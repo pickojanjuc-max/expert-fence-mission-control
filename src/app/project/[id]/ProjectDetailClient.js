@@ -81,6 +81,7 @@ export default function ProjectDetailClient({ projectId }) {
   const [clientPhone, setClientPhone] = useState('');
   const [measureDate, setMeasureDate] = useState('');
   const [installDate, setInstallDate] = useState('');
+  const [siteContact, setSiteContact] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(false);
@@ -103,6 +104,7 @@ export default function ProjectDetailClient({ projectId }) {
         setClientPhone(data.project.client_phone || '');
         setMeasureDate(data.project.measure_date ? data.project.measure_date.slice(0, 10) : '');
         setInstallDate(data.project.install_date ? data.project.install_date.slice(0, 10) : '');
+        setSiteContact(data.project.site_contact || '');
       }
     } catch (e) {
       console.error('Load project error:', e);
@@ -146,6 +148,7 @@ export default function ProjectDetailClient({ projectId }) {
           client_phone: clientPhone,
           measure_date: measureDate || null,
           install_date: installDate || null,
+          site_contact: siteContact,
         }),
       });
       const data = await res.json();
@@ -634,6 +637,8 @@ export default function ProjectDetailClient({ projectId }) {
                   onChange={(e) => setClientEmail(e.target.value)} style={inputStyle} />
                 <input type="tel" placeholder="Phone" value={clientPhone}
                   onChange={(e) => setClientPhone(e.target.value)} style={inputStyle} />
+                <input type="text" placeholder="Site contact name" value={siteContact}
+                  onChange={(e) => setSiteContact(e.target.value)} style={inputStyle} />
               </div>
             </div>
 
