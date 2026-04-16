@@ -28,7 +28,7 @@ export default function SaveProjectModal({
   currentCalculationId,
   label: initialLabel,
 }) {
-  const [mode, setMode] = useState(currentProjectId ? 'update' : 'new'); // 'new' | 'existing' | 'update'
+  const [mode, setMode] = useState('new'); // 'new' | 'existing' | 'update'
   const [projectName, setProjectName] = useState(currentProjectName || '');
   const [label, setLabel] = useState(initialLabel || '');
   const [existingProjects, setExistingProjects] = useState([]);
@@ -43,8 +43,8 @@ export default function SaveProjectModal({
   // Fetch user's projects and clients when opening in "existing" mode
   useEffect(() => {
     if (!show) return;
-    // Reset state
-    setMode(currentProjectId ? 'update' : 'new');
+    // Reset state — always open as New Project so all three calculators look identical
+    setMode('new');
     setProjectName(currentProjectName || '');
     setLabel(initialLabel || '');
     setError('');
@@ -181,9 +181,7 @@ export default function SaveProjectModal({
   return (
     <div onClick={onClose} style={s.overlay}>
       <div onClick={(e) => e.stopPropagation()} style={s.modal}>
-        <h3 style={s.title}>
-          {currentProjectId ? 'Save Calculation' : 'Save to Project'}
-        </h3>
+        <h3 style={s.title}>Save Project</h3>
 
         {/* Mode tabs — always visible so user can pick where this calc goes */}
         <div style={s.tabs}>
