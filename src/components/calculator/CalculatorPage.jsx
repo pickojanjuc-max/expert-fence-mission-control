@@ -239,7 +239,7 @@ export default function Calculator() {
           onClick={() => setShowSaveModal(true)}
           className="px-3 py-1.5 text-xs font-semibold text-white bg-emerald-500 hover:bg-emerald-600 rounded-md transition-colors"
         >
-          {projectId ? "Save" : "Save Project"}
+          Save Project
         </button>
         {saveMsg && <span className="text-xs text-emerald-600 font-medium">{saveMsg}</span>}
       </header>

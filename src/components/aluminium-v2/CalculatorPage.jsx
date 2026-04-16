@@ -60,25 +60,22 @@ export default function CalculatorPage({
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="min-h-screen md:h-screen bg-gray-50 flex flex-col overflow-y-auto md:overflow-hidden">
       {/* Header */}
-      <header className="flex items-center gap-3 px-4 py-2.5 bg-white border-b border-gray-200 flex-shrink-0">
-        <a
-          href="/dashboard"
-          className="text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline whitespace-nowrap"
-        >
-          ← Dashboard
-        </a>
-        <div className="w-px h-5 bg-gray-200" />
-        <span className="text-sm font-bold text-gray-800 flex-1 min-w-0 truncate">
-          Aluminium Fencing Calculator
+      <header className="bg-white border-b border-gray-200 px-3 md:px-5 py-3 flex items-center gap-3 flex-shrink-0">
+        <a href="/dashboard" className="text-sm text-blue-600 font-medium hover:underline flex items-center gap-1">← Dashboard</a>
+        <div className="w-7 h-7 bg-cyan-500 rounded-md flex items-center justify-center">
+          <span className="text-white text-xs font-black">EF</span>
+        </div>
+        <span className="text-sm font-bold text-gray-800 tracking-wide flex-1">
+          Expert Fence Aluminium Calculator
           {projectName && <span className="text-gray-400 font-normal ml-2">— {projectName}</span>}
         </span>
         <button
           onClick={() => setShowSaveModal(true)}
           className="px-3 py-1.5 text-xs font-semibold text-white bg-emerald-500 hover:bg-emerald-600 rounded-md transition-colors"
         >
-          {projectId ? "Save" : "Save Project"}
+          Save Project
         </button>
         {saveMsg && <span className="text-xs text-emerald-600 font-medium">{saveMsg}</span>}
       </header>
