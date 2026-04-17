@@ -134,6 +134,14 @@ const RAW_COSTS = [
   { sku: 'BW-M6X60-LS', cost: 0.78, sell: 1.09, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/BW-M6X60-LS.JPG' },
   { sku: 'BW-RSM5-3.2', cost: 2.91, sell: 4.07, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/BW-RSM5-3.2.JPG' },
   { sku: 'BW-5010-1000BP-P', cost: 0, sell: 0, img: '' },  // custom dropper 1000mm — pricing TBC
+  // Style 4 — Lag screw threaded terminals (timber posts)
+  { sku: 'BW-M6LST-L', cost: 1.01, sell: 1.41, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/BW-M6LST-L.JPG' },
+  { sku: 'BW-M6LST-R', cost: 1.01, sell: 1.41, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/BW-M6LST-R.JPG' },
+  // Style 5 — Threaded terminals (M6 nutsert / drilled post)
+  { sku: 'BW-TTM6-3.2-L', cost: 0.96, sell: 1.35, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/BW-TTM6-3.2-L.JPG' },
+  { sku: 'BW-TTM6-3.2-R', cost: 0.96, sell: 1.35, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/BW-TTM6-3.2-R.JPG' },
+  { sku: 'BW-M6RIVNUT-L', cost: 0.34, sell: 0.47, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/BW-M6RIVNUT-L.JPG' },
+  { sku: 'BW-M6RIVNUT-R', cost: 0.34, sell: 0.47, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/BW-M6RIVNUT-R.JPG' },
   // White tubular variants (zero cost — sell only) — using black variant fallback
   { sku: 'XP-1300-BP-W', cost: 0, sell: 30.06, img: '' },
   { sku: 'XP-DR-W', cost: 0, sell: 2.35, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/XP-DR-B.JPG' },

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   buildWireBOM, defaultWireRun, WIRE_DEFAULTS,
-  STANDARD_OPENING_MM, wireCountForOpening,
+  STANDARD_OPENING_MM, wireCountForOpening, TERMINATION_STYLES,
 } from '@/lib/wireBuilder';
 import { COST_MAP } from '@/lib/costData';
 import SaveProjectModal from '@/components/SaveProjectModal';
@@ -59,6 +59,7 @@ const labelStyle = {
 
 export default function WireCalculator() {
   const [mode,                   setMode]                   = useState(WIRE_DEFAULTS.mode);
+  const [terminationStyle,       setTerminationStyle]       = useState(WIRE_DEFAULTS.terminationStyle);
   const [openingMM,              setOpeningMM]              = useState(WIRE_DEFAULTS.openingMM);
   const [wireAllowanceMM,        setWireAllowanceMM]        = useState(WIRE_DEFAULTS.wireAllowanceMM);
   const [selectedWireCount,      setSelectedWireCount]      = useState(WIRE_DEFAULTS.selectedWireCount);
@@ -80,6 +81,7 @@ export default function WireCalculator() {
     const s = loadSavedState();
     if (s) {
       if (s.mode                   !== undefined) setMode(s.mode);
+      if (s.terminationStyle       !== undefined) setTerminationStyle(s.terminationStyle);
       if (s.openingMM              !== undefined) setOpeningMM(s.openingMM);
       if (s.wireAllowanceMM        !== undefined) setWireAllowanceMM(s.wireAllowanceMM);
       if (s.selectedWireCount      !== undefined) setSelectedWireCount(s.selectedWireCount);
@@ -95,7 +97,7 @@ export default function WireCalculator() {
 
   useEffect(() => {
     if (!hydrated) return;
-    persistState({ mode, openingMM, wireAllowanceMM, selectedWireCount, customDroppersRequired, runs, activeRun, projectId, projectName, calculationId });
+    persistState({ mode, terminationStyle, openingMM, wireAllowanceMM, selectedWireCount, customDroppersRequired, runs, activeRun, projectId, projectName, calculationId });
   }, [mode, openingMM, wireAllowanceMM, selectedWireCount, customDroppersRequired, runs, activeRun, projectId, projectName, calculationId, hydrated]);
 
   // ── URL param load ────────────────────────────────────────────────────────
@@ -110,6 +112,7 @@ export default function WireCalculator() {
         if (!data.calculation) return;
         const s = data.calculation.calculator_state || {};
         if (s.mode                   !== undefined) setMode(s.mode);
+        if (s.terminationStyle       !== undefined) setTerminationStyle(s.terminationStyle);
         if (s.openingMM              !== undefined) setOpeningMM(s.openingMM);
         if (s.wireAllowanceMM        !== undefined) setWireAllowanceMM(s.wireAllowanceMM);
         if (s.selectedWireCount      !== undefined) setSelectedWireCount(s.selectedWireCount);
@@ -150,6 +153,7 @@ export default function WireCalculator() {
   // ── BOM calculation ────────────────────────────────────────────────────────
   const { consolidated, validation, perRun, summary } = buildWireBOM({
     mode,
+    terminationStyle,
     runs,
     openingMM,
     wireAllowanceMM,
@@ -244,6 +248,36 @@ export default function WireCalculator() {
                 >
                   <span style={{ fontSize: 12 }}>{label}</span>
                   <span style={{ fontSize: 10, opacity: 0.7 }}>{sub}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Termination style */}
+          <div style={{ marginBottom: 14 }}>
+            <label style={labelStyle}>Termination Style</label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {Object.entries(TERMINATION_STYLES).map(([key, { label, note }]) => (
+                <button
+                  key={key}
+                  onClick={() => setTerminationStyle(key)}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: 7,
+                    border: `2px solid ${terminationStyle === key ? '#0ea5e9' : '#e5e7eb'}`,
+                    background: terminationStyle === key ? '#f0f9ff' : 'white',
+                    color: terminationStyle === key ? '#0369a1' : '#374151',
+                    fontSize: 12,
+                    fontWeight: terminationStyle === key ? 700 : 500,
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 1,
+                  }}
+                >
+                  <span>{label}</span>
+                  <span style={{ fontSize: 10, opacity: 0.65, fontWeight: 400 }}>{note}</span>
                 </button>
               ))}
             </div>
@@ -670,7 +704,7 @@ export default function WireCalculator() {
         onClose={() => setShowSaveModal(false)}
         onSaved={handleProjectSaved}
         calculatorType="wire"
-        calculatorState={{ mode, openingMM, wireAllowanceMM, selectedWireCount, customDroppersRequired, runs, activeRun }}
+        calculatorState={{ mode, terminationStyle, openingMM, wireAllowanceMM, selectedWireCount, customDroppersRequired, runs, activeRun }}
         bomSnapshot={getCurrentBom()}
         currentProjectId={projectId}
         currentProjectName={projectName}

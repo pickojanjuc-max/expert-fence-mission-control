@@ -93,11 +93,25 @@ export function rollSupply(totalWireM) {
 // ── Main BOM builder ──────────────────────────────────────────────────────────
 
 /**
+ * Termination styles — controls which fittings are added per wire end.
+ *
+ *  'rigging-fork'  — rigging screw (one end) + fork terminal (other end) + 2× lag eye screws
+ *  'lag-screw'     — lag screw threaded terminal L + R (ideal for timber posts, no lag eyes)
+ *  'threaded'      — threaded terminal L + R + M6 nutsert L + R (for drilled/tapped post)
+ */
+export const TERMINATION_STYLES = {
+  'rigging-fork': { label: 'Rigging screw & fork terminal',   note: 'Standard – steel/alum posts' },
+  'lag-screw':    { label: 'Lag screw threaded terminals',     note: 'Ideal for timber posts' },
+  'threaded':     { label: 'Threaded terminals (M6 nutsert)',  note: 'Drilled/tapped post' },
+};
+
+/**
  * Build BOM for all runs.
  *
  * @param {object} opts
  *   mode                   — 'standard' | 'custom'
- *   runs                   — [{ spanMM, label }]
+ *   terminationStyle       — 'rigging-fork' | 'lag-screw' | 'threaded'
+ *   runs                   — [{ spanMM, label, intermediatePostCount }]
  *   openingMM              — overall opening height (mm)
  *   wireAllowanceMM        — extra wire per run per wire (mm, default 0)
  *   selectedWireCount      — custom mode: user's wire count override (0 = auto)
@@ -108,6 +122,7 @@ export function rollSupply(totalWireM) {
 export function buildWireBOM(opts) {
   const {
     mode                   = 'standard',
+    terminationStyle       = 'rigging-fork',
     runs                   = [{ spanMM: 2400, label: 'A' }],
     openingMM: rawOpening  = STANDARD_OPENING_MM,
     wireAllowanceMM        = 0,
@@ -149,14 +164,24 @@ export function buildWireBOM(opts) {
 
   // ── Per-run calculations ────────────────────────────────────────────────
   const perRun = [];
-  let totDroppers       = 0;
-  let totTopPlates      = 0;
-  let totCustomDroppers = 0;
+  let totDroppers        = 0;
+  let totTopPlates       = 0;
+  let totCustomDroppers  = 0;
   let totCustomTopPlates = 0;
-  let totForkTerminals  = 0;
-  let totRiggingScrews  = 0;
-  let totLagEyes        = 0;
-  let totWireLengthM    = 0;
+  // Style: rigging-fork
+  let totForkTerminals   = 0;
+  let totRiggingScrews   = 0;
+  let totLagEyes         = 0;
+  // Style: lag-screw
+  let totLagScrewL       = 0;
+  let totLagScrewR       = 0;
+  // Style: threaded
+  let totThreadedL       = 0;
+  let totThreadedR       = 0;
+  let totNutsertL        = 0;
+  let totNutsertR        = 0;
+
+  let totWireLengthM     = 0;
 
   for (const run of runs) {
     const spanMM              = Math.max(100, run.spanMM || 2400);
@@ -174,9 +199,16 @@ export function buildWireBOM(opts) {
     const effectiveDroppers = rawDroppers;
 
     // Fittings — only at the two ends of the full run, not at intermediate posts
-    const forkTerminals = wireCount;
-    const riggingScrews = wireCount;
-    const lagEyes       = wireCount * 2;
+    // Quantities per run depend on termination style
+    const forkTerminals = terminationStyle === 'rigging-fork' ? wireCount : 0;
+    const riggingScrews = terminationStyle === 'rigging-fork' ? wireCount : 0;
+    const lagEyes       = terminationStyle === 'rigging-fork' ? wireCount * 2 : 0;
+    const lagScrewL     = terminationStyle === 'lag-screw'    ? wireCount : 0;
+    const lagScrewR     = terminationStyle === 'lag-screw'    ? wireCount : 0;
+    const threadedL     = terminationStyle === 'threaded'     ? wireCount : 0;
+    const threadedR     = terminationStyle === 'threaded'     ? wireCount : 0;
+    const nutsertL      = terminationStyle === 'threaded'     ? wireCount : 0;
+    const nutsertR      = terminationStyle === 'threaded'     ? wireCount : 0;
 
     const wireLenPerWireMM = spanMM + wireAllowanceMM;
     const wireLengthM      = (wireCount * wireLenPerWireMM) / 1000;
@@ -192,6 +224,12 @@ export function buildWireBOM(opts) {
     totForkTerminals += forkTerminals;
     totRiggingScrews += riggingScrews;
     totLagEyes       += lagEyes;
+    totLagScrewL     += lagScrewL;
+    totLagScrewR     += lagScrewR;
+    totThreadedL     += threadedL;
+    totThreadedR     += threadedR;
+    totNutsertL      += nutsertL;
+    totNutsertR      += nutsertR;
     totWireLengthM   += wireLengthM;
 
     perRun.push({
@@ -209,6 +247,12 @@ export function buildWireBOM(opts) {
       forkTerminals,
       riggingScrews,
       lagEyes,
+      lagScrewL,
+      lagScrewR,
+      threadedL,
+      threadedR,
+      nutsertL,
+      nutsertR,
       wireLengthM:        Math.round(wireLengthM * 100) / 100,
     });
   }
@@ -238,22 +282,32 @@ export function buildWireBOM(opts) {
   if (totCustomDroppers > 0) add('BW-5010-1000BP-P',   'Dropper post 1000mm (custom)',    totCustomDroppers, 'ea');
   if (totCustomTopPlates > 0) add('BW-5010-TP-P',      'Dropper top plate',               totCustomTopPlates, 'ea');
 
-  // Fittings
-  add('BW-FTM5-3.2',  'Fork terminal M5 × 3.2mm',  totForkTerminals, 'ea');
-  add('BW-RSM5-3.2',  'Rigging screw M5 × 3.2mm',  totRiggingScrews, 'ea');
-  add('BW-M6X60-LS',  '6mm lag eye screw',          totLagEyes,       'ea');
+  // Fittings — vary by termination style
+  // Style: rigging-fork
+  add('BW-FTM5-3.2',   'Fork terminal M5 × 3.2mm',           totForkTerminals, 'ea');
+  add('BW-RSM5-3.2',   'Rigging screw M5 × 3.2mm',           totRiggingScrews, 'ea');
+  add('BW-M6X60-LS',   '6mm lag eye screw',                   totLagEyes,       'ea');
+  // Style: lag-screw
+  add('BW-M6LST-L',    'Lag screw terminal — LEFT',           totLagScrewL,     'ea');
+  add('BW-M6LST-R',    'Lag screw terminal — RIGHT',          totLagScrewR,     'ea');
+  // Style: threaded
+  add('BW-TTM6-3.2-L', 'Threaded terminal — LEFT',            totThreadedL,     'ea');
+  add('BW-TTM6-3.2-R', 'Threaded terminal — RIGHT',           totThreadedR,     'ea');
+  add('BW-M6RIVNUT-L', 'M6 nutsert — LEFT',                   totNutsertL,      'ea');
+  add('BW-M6RIVNUT-R', 'M6 nutsert — RIGHT',                  totNutsertR,      'ea');
 
   const consolidated = Array.from(bom.values());
 
   const summary = {
     wireCount,
     recommendedWireCount,
-    wireCentresMM:   Math.round(wireCentres * 10) / 10,
-    bottomGapMM:     bottomGap !== null ? Math.round(bottomGap * 10) / 10 : null,
+    wireCentresMM:    Math.round(wireCentres * 10) / 10,
+    bottomGapMM:      bottomGap !== null ? Math.round(bottomGap * 10) / 10 : null,
     totalWireLengthM: Math.round(totWireLengthM * 100) / 100,
     roll100,
     roll305,
     mode,
+    terminationStyle,
   };
 
   return { consolidated, validation, perRun, summary };
@@ -271,7 +325,8 @@ export function defaultWireRun(index = 0) {
 }
 
 export const WIRE_DEFAULTS = {
-  mode:                   'standard',  // 'standard' | 'custom'
+  mode:                   'standard',      // 'standard' | 'custom'
+  terminationStyle:       'rigging-fork',  // 'rigging-fork' | 'lag-screw' | 'threaded'
   openingMM:              972,
   wireAllowanceMM:        0,
   selectedWireCount:      11,
