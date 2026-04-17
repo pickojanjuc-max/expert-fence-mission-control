@@ -339,125 +339,125 @@ const RAW_COSTS = [
   // Oval handrail (OHR) not in CSV — priced at 0 until confirmed with supplier.
 
   // Posts — Base Plate 1050mm H (AR-1050-FPBP: cost $33.18)
-  { sku: 'AR-1050-FPBP-B',  cost: 33.18, sell: 0, img: '' },
-  { sku: 'AR-1050-FPBP-MN', cost: 33.18, sell: 0, img: '' },
-  { sku: 'AR-1050-FPBP-W',  cost: 33.18, sell: 0, img: '' },
-  { sku: 'AR-1050-FPBP-M',  cost: 33.18, sell: 0, img: '' },
+  { sku: 'AR-1050-FPBP-B',  cost: 33.18, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/AR-1050-FPBP-B.JPG' },
+  { sku: 'AR-1050-FPBP-MN', cost: 33.18, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/AR-1050-FPBP-MN.JPG' },
+  { sku: 'AR-1050-FPBP-W',  cost: 33.18, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/AR-1050-FPBP-W.JPG' },
+  { sku: 'AR-1050-FPBP-M',  cost: 33.18, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/AR-1050-FPBP-M.JPG' },
 
   // Posts — Full Post 5800mm for Core Drill (not in CSV — cost TBC)
-  { sku: 'AR-5800-FP-B',  cost: 0, sell: 0, img: '' },
-  { sku: 'AR-5800-FP-MN', cost: 0, sell: 0, img: '' },
-  { sku: 'AR-5800-FP-W',  cost: 0, sell: 0, img: '' },
-  { sku: 'AR-5800-FP-M',  cost: 0, sell: 0, img: '' },
+  { sku: 'AR-5800-FP-B',  cost: 0, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/AR-5800-FP-B.JPG' },
+  { sku: 'AR-5800-FP-MN', cost: 0, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/AR-5800-FP-MN.JPG' },
+  { sku: 'AR-5800-FP-W',  cost: 0, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/AR-5800-FP-W.JPG' },
+  { sku: 'AR-5800-FP-M',  cost: 0, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/AR-5800-FP-M.JPG' },
 
   // Post covers — Domical 2-part (XP-DC-2P: cost $5.11)
-  { sku: 'XP-DC-2P-B',  cost: 5.11, sell: 0, img: '' },
-  { sku: 'XP-DC-2P-MN', cost: 5.11, sell: 0, img: '' },
-  { sku: 'XP-DC-2P-W',  cost: 5.11, sell: 0, img: '' },
-  { sku: 'XP-DC-2P-M',  cost: 5.11, sell: 0, img: '' },
+  { sku: 'XP-DC-2P-B',  cost: 5.11, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/XP-DC-2P-B.JPG' },
+  { sku: 'XP-DC-2P-MN', cost: 5.11, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/XP-DC-2P-MN.JPG' },
+  { sku: 'XP-DC-2P-W',  cost: 5.11, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/XP-DC-2P-W.JPG' },
+  { sku: 'XP-DC-2P-M',  cost: 5.11, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/XP-DC-2P-M.JPG' },
 
   // Post covers — Dress Ring (not in CSV — cost TBC)
-  { sku: 'XP-DR-B',  cost: 0, sell: 0, img: '' },
-  { sku: 'XP-DR-MN', cost: 0, sell: 0, img: '' },
-  { sku: 'XP-DR-W',  cost: 0, sell: 0, img: '' },
-  { sku: 'XP-DR-M',  cost: 0, sell: 0, img: '' },
+  { sku: 'XP-DR-B',  cost: 0, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/XP-DR-B.JPG' },
+  { sku: 'XP-DR-MN', cost: 0, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/XP-DR-MN.JPG' },
+  { sku: 'XP-DR-W',  cost: 0, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/XP-DR-W.JPG' },
+  { sku: 'XP-DR-M',  cost: 0, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/XP-DR-M.JPG' },
 
   // Bottom Rail 5800mm (AR-BOTTOM-RAIL / AR-5800-BR: cost $105.05)
-  { sku: 'AR-5800-BR-B',  cost: 105.05, sell: 0, img: '' },
-  { sku: 'AR-5800-BR-MN', cost: 105.05, sell: 0, img: '' },
-  { sku: 'AR-5800-BR-W',  cost: 105.05, sell: 0, img: '' },
-  { sku: 'AR-5800-BR-M',  cost: 105.05, sell: 0, img: '' },
+  { sku: 'AR-5800-BR-B',  cost: 105.05, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/AR-5800-BR-B.JPG' },
+  { sku: 'AR-5800-BR-MN', cost: 105.05, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/AR-5800-BR-MN.JPG' },
+  { sku: 'AR-5800-BR-W',  cost: 105.05, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/AR-5800-BR-W.JPG' },
+  { sku: 'AR-5800-BR-M',  cost: 105.05, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/AR-5800-BR-M.JPG' },
 
   // Bottom Rail Insert 3022mm for 65mm slats (AR-3022-INS-65: cost $23.87)
-  { sku: 'AR-3022-INS-65-B',  cost: 23.87, sell: 0, img: '' },
-  { sku: 'AR-3022-INS-65-MN', cost: 23.87, sell: 0, img: '' },
-  { sku: 'AR-3022-INS-65-W',  cost: 23.87, sell: 0, img: '' },
-  { sku: 'AR-3022-INS-65-M',  cost: 23.87, sell: 0, img: '' },
+  { sku: 'AR-3022-INS-65-B',  cost: 23.87, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/AR-3022-INS-65-B.JPG' },
+  { sku: 'AR-3022-INS-65-MN', cost: 23.87, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/AR-3022-INS-65-MN.JPG' },
+  { sku: 'AR-3022-INS-65-W',  cost: 23.87, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/AR-3022-INS-65-W.JPG' },
+  { sku: 'AR-3022-INS-65-M',  cost: 23.87, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/AR-3022-INS-65-M.JPG' },
 
   // Slats 65×16.5mm, 6100mm stock (XP-6100-S65: cost $37.29)
-  { sku: 'XP-6100-S65-B',  cost: 37.29, sell: 0, img: '' },
-  { sku: 'XP-6100-S65-MN', cost: 37.29, sell: 0, img: '' },
-  { sku: 'XP-6100-S65-W',  cost: 37.29, sell: 0, img: '' },
-  { sku: 'XP-6100-S65-M',  cost: 37.29, sell: 0, img: '' },
+  { sku: 'XP-6100-S65-B',  cost: 37.29, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/XP-6100-S65-B.JPG' },
+  { sku: 'XP-6100-S65-MN', cost: 37.29, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/XP-6100-S65-MN.JPG' },
+  { sku: 'XP-6100-S65-W',  cost: 37.29, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/XP-6100-S65-W.JPG' },
+  { sku: 'XP-6100-S65-M',  cost: 37.29, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/XP-6100-S65-M.JPG' },
 
   // Handrail — Oval 5800mm (not in CSV — cost TBC)
-  { sku: 'A50-5800-OHR-B',  cost: 0, sell: 0, img: '' },
-  { sku: 'A50-5800-OHR-MN', cost: 0, sell: 0, img: '' },
-  { sku: 'A50-5800-OHR-W',  cost: 0, sell: 0, img: '' },
-  { sku: 'A50-5800-OHR-M',  cost: 0, sell: 0, img: '' },
+  { sku: 'A50-5800-OHR-B',  cost: 0, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/A50-5800-OHR-B.JPG' },
+  { sku: 'A50-5800-OHR-MN', cost: 0, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/A50-5800-OHR-MN.JPG' },
+  { sku: 'A50-5800-OHR-W',  cost: 0, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/A50-5800-OHR-W.JPG' },
+  { sku: 'A50-5800-OHR-M',  cost: 0, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/A50-5800-OHR-M.JPG' },
 
   // Handrail — Rectangular 5800mm (A50-5800-RHR: cost $97.72)
-  { sku: 'A50-5800-RHR-B',  cost: 97.72, sell: 0, img: '' },
-  { sku: 'A50-5800-RHR-MN', cost: 97.72, sell: 0, img: '' },
-  { sku: 'A50-5800-RHR-W',  cost: 97.72, sell: 0, img: '' },
-  { sku: 'A50-5800-RHR-M',  cost: 97.72, sell: 0, img: '' },
+  { sku: 'A50-5800-RHR-B',  cost: 97.72, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/A50-5800-RHR-B.JPG' },
+  { sku: 'A50-5800-RHR-MN', cost: 97.72, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/A50-5800-RHR-MN.JPG' },
+  { sku: 'A50-5800-RHR-W',  cost: 97.72, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/A50-5800-RHR-W.JPG' },
+  { sku: 'A50-5800-RHR-M',  cost: 97.72, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/A50-5800-RHR-M.JPG' },
 
   // Offset Brackets — Oval Handrail (2pk) — not in CSV, cost TBC
-  { sku: 'A50-BRACKET-O-B-2PK',  cost: 0, sell: 0, img: '' },
-  { sku: 'A50-BRACKET-O-MN-2PK', cost: 0, sell: 0, img: '' },
-  { sku: 'A50-BRACKET-O-W-2PK',  cost: 0, sell: 0, img: '' },
-  { sku: 'A50-BRACKET-O-M-2PK',  cost: 0, sell: 0, img: '' },
+  { sku: 'A50-BRACKET-O-B-2PK',  cost: 0, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/A50-BRACKET-O-B-2PK.JPG' },
+  { sku: 'A50-BRACKET-O-MN-2PK', cost: 0, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/A50-BRACKET-O-MN-2PK.JPG' },
+  { sku: 'A50-BRACKET-O-W-2PK',  cost: 0, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/A50-BRACKET-O-W-2PK.JPG' },
+  { sku: 'A50-BRACKET-O-M-2PK',  cost: 0, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/A50-BRACKET-O-M-2PK.JPG' },
 
   // Offset Brackets — Rectangular Handrail (2pk) (A50-BRACKET-R-2PK: cost $5.15)
-  { sku: 'A50-BRACKET-R-B-2PK',  cost: 5.15, sell: 0, img: '' },
-  { sku: 'A50-BRACKET-R-MN-2PK', cost: 5.15, sell: 0, img: '' },
-  { sku: 'A50-BRACKET-R-W-2PK',  cost: 5.15, sell: 0, img: '' },
-  { sku: 'A50-BRACKET-R-M-2PK',  cost: 5.15, sell: 0, img: '' },
+  { sku: 'A50-BRACKET-R-B-2PK',  cost: 5.15, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/A50-BRACKET-R-B-2PK.JPG' },
+  { sku: 'A50-BRACKET-R-MN-2PK', cost: 5.15, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/A50-BRACKET-R-MN-2PK.JPG' },
+  { sku: 'A50-BRACKET-R-W-2PK',  cost: 5.15, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/A50-BRACKET-R-W-2PK.JPG' },
+  { sku: 'A50-BRACKET-R-M-2PK',  cost: 5.15, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/A50-BRACKET-R-M-2PK.JPG' },
 
   // End Caps — Oval Handrail (not in CSV, cost TBC)
-  { sku: 'A50-ECA-O-B',  cost: 0, sell: 0, img: '' },
-  { sku: 'A50-ECA-O-MN', cost: 0, sell: 0, img: '' },
-  { sku: 'A50-ECA-O-W',  cost: 0, sell: 0, img: '' },
-  { sku: 'A50-ECA-O-M',  cost: 0, sell: 0, img: '' },
+  { sku: 'A50-ECA-O-B',  cost: 0, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/A50-ECA-O-B.JPG' },
+  { sku: 'A50-ECA-O-MN', cost: 0, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/A50-ECA-O-MN.JPG' },
+  { sku: 'A50-ECA-O-W',  cost: 0, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/A50-ECA-O-W.JPG' },
+  { sku: 'A50-ECA-O-M',  cost: 0, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/A50-ECA-O-M.JPG' },
 
   // End Caps — Rectangular Handrail (A50-ECA-R: cost $2.03)
-  { sku: 'A50-ECA-R-B',  cost: 2.03, sell: 0, img: '' },
-  { sku: 'A50-ECA-R-MN', cost: 2.03, sell: 0, img: '' },
-  { sku: 'A50-ECA-R-W',  cost: 2.03, sell: 0, img: '' },
-  { sku: 'A50-ECA-R-M',  cost: 2.03, sell: 0, img: '' },
+  { sku: 'A50-ECA-R-B',  cost: 2.03, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/A50-ECA-R-B.JPG' },
+  { sku: 'A50-ECA-R-MN', cost: 2.03, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/A50-ECA-R-MN.JPG' },
+  { sku: 'A50-ECA-R-W',  cost: 2.03, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/A50-ECA-R-W.JPG' },
+  { sku: 'A50-ECA-R-M',  cost: 2.03, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/A50-ECA-R-M.JPG' },
 
   // Top Spacers 65mm, pack of 20 (AR-SPACER-65MM: cost $5.93)
-  { sku: 'AR-SPACER-65MM-B',  cost: 5.93, sell: 0, img: '' },
-  { sku: 'AR-SPACER-65MM-MN', cost: 5.93, sell: 0, img: '' },
-  { sku: 'AR-SPACER-65MM-W',  cost: 5.93, sell: 0, img: '' },
-  { sku: 'AR-SPACER-65MM-M',  cost: 5.93, sell: 0, img: '' },
+  { sku: 'AR-SPACER-65MM-B',  cost: 5.93, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/AR-SPACER-65MM-B.JPG' },
+  { sku: 'AR-SPACER-65MM-MN', cost: 5.93, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/AR-SPACER-65MM-MN.JPG' },
+  { sku: 'AR-SPACER-65MM-W',  cost: 5.93, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/AR-SPACER-65MM-W.JPG' },
+  { sku: 'AR-SPACER-65MM-M',  cost: 5.93, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/AR-SPACER-65MM-M.JPG' },
 
   // Mounting Plates for Bottom Rail, pack of 2 (AR-PLATE-2PK: cost $4.11)
-  { sku: 'AR-PLATE-B-2PK',  cost: 4.11, sell: 0, img: '' },
-  { sku: 'AR-PLATE-MN-2PK', cost: 4.11, sell: 0, img: '' },
-  { sku: 'AR-PLATE-W-2PK',  cost: 4.11, sell: 0, img: '' },
-  { sku: 'AR-PLATE-M-2PK',  cost: 4.11, sell: 0, img: '' },
+  { sku: 'AR-PLATE-B-2PK',  cost: 4.11, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/AR-PLATE-B-2PK.JPG' },
+  { sku: 'AR-PLATE-MN-2PK', cost: 4.11, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/AR-PLATE-MN-2PK.JPG' },
+  { sku: 'AR-PLATE-W-2PK',  cost: 4.11, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/AR-PLATE-W-2PK.JPG' },
+  { sku: 'AR-PLATE-M-2PK',  cost: 4.11, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/AR-PLATE-M-2PK.JPG' },
 
   // 3-Rail Infill 1400mm (not in CSV — cost TBC)
-  { sku: 'A50-1400-INF-B',  cost: 0, sell: 0, img: '' },
-  { sku: 'A50-1400-INF-MN', cost: 0, sell: 0, img: '' },
-  { sku: 'A50-1400-INF-W',  cost: 0, sell: 0, img: '' },
-  { sku: 'A50-1400-INF-M',  cost: 0, sell: 0, img: '' },
+  { sku: 'A50-1400-INF-B',  cost: 0, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/A50-1400-INF-B.JPG' },
+  { sku: 'A50-1400-INF-MN', cost: 0, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/A50-1400-INF-MN.JPG' },
+  { sku: 'A50-1400-INF-W',  cost: 0, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/A50-1400-INF-W.JPG' },
+  { sku: 'A50-1400-INF-M',  cost: 0, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/A50-1400-INF-M.JPG' },
 
   // Bottom rail screws, 50pk (AR-SCR-BR-50PK: cost $3.85) — colour variants share same price
-  { sku: 'AR-SCR-BR-50PK',    cost: 3.85, sell: 0, img: '' },
-  { sku: 'AR-SCR-BR-50PK-B',  cost: 3.85, sell: 0, img: '' },
-  { sku: 'AR-SCR-BR-50PK-MN', cost: 3.85, sell: 0, img: '' },
-  { sku: 'AR-SCR-BR-50PK-W',  cost: 3.85, sell: 0, img: '' },
-  { sku: 'AR-SCR-BR-50PK-M',  cost: 3.85, sell: 0, img: '' },
+  { sku: 'AR-SCR-BR-50PK',    cost: 3.85, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/AR-SCR-BR-50PK.JPG' },
+  { sku: 'AR-SCR-BR-50PK-B',  cost: 3.85, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/AR-SCR-BR-50PK-B.JPG' },
+  { sku: 'AR-SCR-BR-50PK-MN', cost: 3.85, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/AR-SCR-BR-50PK-MN.JPG' },
+  { sku: 'AR-SCR-BR-50PK-W',  cost: 3.85, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/AR-SCR-BR-50PK-W.JPG' },
+  { sku: 'AR-SCR-BR-50PK-M',  cost: 3.85, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/AR-SCR-BR-50PK-M.JPG' },
 
   // Tek screws SS304 50pk (SS-TS-50-SS304: cost $4.68)
-  { sku: 'SS-TS-50-SS304', cost: 4.68, sell: 0, img: '' },
+  { sku: 'SS-TS-50-SS304', cost: 4.68, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/SS-TS-50-SS304.JPG' },
 
   // CSK screws 12g×50, 50pk (CSK-12GX50-50PK: cost $5.62)
-  { sku: 'CSK-12GX50-50PK', cost: 5.62, sell: 0, img: '' },
+  { sku: 'CSK-12GX50-50PK', cost: 5.62, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/CSK-12GX50-50PK.JPG' },
 
   // XP Screws (not in CSV — cost TBC)
-  { sku: 'XP-SCREWS-B',  cost: 0, sell: 0, img: '' },
-  { sku: 'XP-SCREWS-MN', cost: 0, sell: 0, img: '' },
-  { sku: 'XP-SCREWS-W',  cost: 0, sell: 0, img: '' },
-  { sku: 'XP-SCREWS-M',  cost: 0, sell: 0, img: '' },
+  { sku: 'XP-SCREWS-B',  cost: 0, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/XP-SCREWS-B.JPG' },
+  { sku: 'XP-SCREWS-MN', cost: 0, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/XP-SCREWS-MN.JPG' },
+  { sku: 'XP-SCREWS-W',  cost: 0, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/XP-SCREWS-W.JPG' },
+  { sku: 'XP-SCREWS-M',  cost: 0, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/XP-SCREWS-M.JPG' },
 
   // Wall plate (A50-WP — not in CSV)
-  { sku: 'A50-WP-B',  cost: 0, sell: 0, img: '' },
-  { sku: 'A50-WP-MN', cost: 0, sell: 0, img: '' },
-  { sku: 'A50-WP-W',  cost: 0, sell: 0, img: '' },
-  { sku: 'A50-WP-M',  cost: 0, sell: 0, img: '' },
+  { sku: 'A50-WP-B',  cost: 0, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/A50-WP-B.JPG' },
+  { sku: 'A50-WP-MN', cost: 0, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/A50-WP-MN.JPG' },
+  { sku: 'A50-WP-W',  cost: 0, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/A50-WP-W.JPG' },
+  { sku: 'A50-WP-M',  cost: 0, sell: 0, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/A50-WP-M.JPG' },
 ];
 
 /**
