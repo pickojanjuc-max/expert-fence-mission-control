@@ -78,8 +78,11 @@ export default function WireElevationPreview({ runs, summary, openingMM = 972 })
     svg += `<rect x="${lx + 68}" y="${ly - 6}" width="4" height="12" fill="#7c3aed" opacity="0.7" rx="1"/>`;
     svg += `<text x="${lx + 76}" y="${ly + 4}" fill="#475569" font-size="10">Dropper post</text>`;
 
-    svg += `<line x1="${lx + 168}" y1="${ly}" x2="${lx + 184}" y2="${ly}" stroke="#0ea5e9" stroke-width="1.5" stroke-linecap="round"/>`;
-    svg += `<text x="${lx + 188}" y="${ly + 4}" fill="#475569" font-size="10">Wire</text>`;
+    svg += `<rect x="${lx + 168}" y="${ly - 6}" width="6" height="12" fill="#92400e" opacity="0.75" rx="1"/>`;
+    svg += `<text x="${lx + 178}" y="${ly + 4}" fill="#475569" font-size="10">Intermediate post</text>`;
+
+    svg += `<line x1="${lx + 296}" y1="${ly}" x2="${lx + 312}" y2="${ly}" stroke="#0ea5e9" stroke-width="1.5" stroke-linecap="round"/>`;
+    svg += `<text x="${lx + 316}" y="${ly + 4}" fill="#475569" font-size="10">Wire</text>`;
 
     // Runs
     let yOffset = LEGEND_H;
@@ -108,18 +111,33 @@ export default function WireElevationPreview({ runs, summary, openingMM = 972 })
         svg += `<line x1="${tx(0)}" y1="${wY}" x2="${tx(runMM)}" y2="${wY}" stroke="#0ea5e9" stroke-width="1.2" stroke-linecap="round"/>`;
       }
 
-      // Dropper posts
-      const dropperCount = dropperCountForSpan(runMM);
-      const postPxW = Math.max(2.5, POST_W_MM * scale);
-      if (dropperCount > 0) {
-        const interval = runMM / (dropperCount + 1);
-        for (let d = 1; d <= dropperCount; d++) {
-          const dxMM = d * interval;
-          svg += `<rect x="${tx(dxMM) - postPxW / 4}" y="${ty(openingMM)}" width="${Math.max(2, postPxW / 2)}" height="${drawH}" fill="#7c3aed" opacity="0.55" rx="0.5"/>`;
+      // Dropper posts — per sub-bay
+      const intPosts   = Math.max(0, Math.floor(run.intermediatePostCount || 0));
+      const subBays    = intPosts + 1;
+      const subBayMM   = runMM / subBays;
+      const postPxW    = Math.max(2.5, POST_W_MM * scale);
+      const dropperPxW = Math.max(2, postPxW / 2);
+
+      for (let bay = 0; bay < subBays; bay++) {
+        const bayStartMM = bay * subBayMM;
+        const dropperCount = dropperCountForSpan(subBayMM);
+        if (dropperCount > 0) {
+          const interval = subBayMM / (dropperCount + 1);
+          for (let d = 1; d <= dropperCount; d++) {
+            const dxMM = bayStartMM + d * interval;
+            svg += `<rect x="${tx(dxMM) - dropperPxW / 2}" y="${ty(openingMM)}" width="${dropperPxW}" height="${drawH}" fill="#7c3aed" opacity="0.55" rx="0.5"/>`;
+          }
         }
       }
 
-      // End posts (on top)
+      // Intermediate posts (brown, wider than droppers, between bays)
+      const intPostPxW = Math.max(3.5, POST_W_MM * scale * 0.9);
+      for (let p = 1; p <= intPosts; p++) {
+        const pxMM = p * subBayMM;
+        svg += `<rect x="${tx(pxMM) - intPostPxW / 2}" y="${ty(openingMM)}" width="${intPostPxW}" height="${drawH}" fill="#92400e" opacity="0.75" rx="1"/>`;
+      }
+
+      // End posts (on top of everything)
       const endPostW = Math.max(3.5, POST_W_MM * scale);
       svg += `<rect x="${tx(0) - endPostW / 2}" y="${ty(openingMM)}" width="${endPostW}" height="${drawH}" fill="#1e293b" rx="1"/>`;
       svg += `<rect x="${tx(runMM) - endPostW / 2}" y="${ty(openingMM)}" width="${endPostW}" height="${drawH}" fill="#1e293b" rx="1"/>`;

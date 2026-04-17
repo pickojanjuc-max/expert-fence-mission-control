@@ -159,13 +159,21 @@ export function buildWireBOM(opts) {
   let totWireLengthM    = 0;
 
   for (const run of runs) {
-    const spanMM = Math.max(100, run.spanMM || 2400);
+    const spanMM              = Math.max(100, run.spanMM || 2400);
+    const intermediatePosts   = Math.max(0, Math.floor(run.intermediatePostCount || 0));
+    const subBayCount         = intermediatePosts + 1;
+    const subBaySpanMM        = spanMM / subBayCount;
 
-    const rawDroppers = dropperCountForSpan(spanMM);
-    const customNoDroppers = mode === 'custom' && !customDroppersRequired;
-    const dropperSupported = !standardOutsideRange && !customDropperExceeds && !customNoDroppers;
-    const effectiveDroppers = dropperSupported ? rawDroppers : 0;
+    // Droppers: each sub-bay assessed independently, then summed
+    const customNoDroppers  = mode === 'custom' && !customDroppersRequired;
+    const dropperSupported  = !standardOutsideRange && !customDropperExceeds && !customNoDroppers;
+    const rawDroppers       = dropperSupported
+      ? Array.from({ length: subBayCount }, () => dropperCountForSpan(subBaySpanMM))
+          .reduce((sum, n) => sum + n, 0)
+      : 0;
+    const effectiveDroppers = rawDroppers;
 
+    // Fittings — only at the two ends of the full run, not at intermediate posts
     const forkTerminals = wireCount;
     const riggingScrews = wireCount;
     const lagEyes       = wireCount * 2;
@@ -177,8 +185,8 @@ export function buildWireBOM(opts) {
       totDroppers  += effectiveDroppers;
       totTopPlates += effectiveDroppers;
     } else {
-      totCustomDroppers   += effectiveDroppers;
-      totCustomTopPlates  += effectiveDroppers;
+      totCustomDroppers  += effectiveDroppers;
+      totCustomTopPlates += effectiveDroppers;
     }
 
     totForkTerminals += forkTerminals;
@@ -187,18 +195,21 @@ export function buildWireBOM(opts) {
     totWireLengthM   += wireLengthM;
 
     perRun.push({
-      label:                    run.label || String(perRun.length + 1),
+      label:              run.label || String(perRun.length + 1),
       spanMM,
       openingMM,
       wireCount,
-      wireCentresMM:            Math.round(wireCentres * 100) / 100,
-      bottomGapMM:              bottomGap !== null ? Math.round(bottomGap * 100) / 100 : null,
-      dropperCount:             effectiveDroppers,
+      wireCentresMM:      Math.round(wireCentres * 100) / 100,
+      bottomGapMM:        bottomGap !== null ? Math.round(bottomGap * 100) / 100 : null,
+      intermediatePosts,
+      subBayCount,
+      subBaySpanMM:       Math.round(subBaySpanMM),
+      dropperCount:       effectiveDroppers,
       dropperSupported,
       forkTerminals,
       riggingScrews,
       lagEyes,
-      wireLengthM:              Math.round(wireLengthM * 100) / 100,
+      wireLengthM:        Math.round(wireLengthM * 100) / 100,
     });
   }
 
@@ -253,8 +264,9 @@ export function buildWireBOM(opts) {
 export function defaultWireRun(index = 0) {
   const labels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
   return {
-    label:  labels[index] || String(index + 1),
-    spanMM: 2400,
+    label:                labels[index] || String(index + 1),
+    spanMM:               2400,
+    intermediatePostCount: 0,
   };
 }
 

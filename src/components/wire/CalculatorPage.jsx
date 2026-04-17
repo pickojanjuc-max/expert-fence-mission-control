@@ -344,7 +344,7 @@ export default function WireCalculator() {
           {/* Active run */}
           {runs[activeRun] && (
             <div style={{ padding: 16 }}>
-              <div>
+              <div style={{ marginBottom: 12 }}>
                 <label style={labelStyle}>Span Width (mm)</label>
                 <input
                   type="number"
@@ -356,14 +356,38 @@ export default function WireCalculator() {
                 />
               </div>
 
+              {/* Intermediate posts */}
+              <div style={{ marginBottom: 4 }}>
+                <label style={labelStyle}>Intermediate Posts</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <button
+                    onClick={() => updateRun(activeRun, 'intermediatePostCount', Math.max(0, (runs[activeRun].intermediatePostCount || 0) - 1))}
+                    style={{ width: 28, height: 28, borderRadius: 6, border: '1px solid #d1d5db', background: 'white', fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#374151' }}
+                  >−</button>
+                  <span style={{ fontSize: 15, fontWeight: 700, color: '#111827', minWidth: 20, textAlign: 'center' }}>
+                    {runs[activeRun].intermediatePostCount || 0}
+                  </span>
+                  <button
+                    onClick={() => updateRun(activeRun, 'intermediatePostCount', Math.min(10, (runs[activeRun].intermediatePostCount || 0) + 1))}
+                    style={{ width: 28, height: 28, borderRadius: 6, border: '1px solid #d1d5db', background: 'white', fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#374151' }}
+                  >+</button>
+                  <span style={{ fontSize: 11, color: '#9ca3af' }}>timber/structural posts passing through</span>
+                </div>
+              </div>
+
               {/* Per-run summary chip */}
               {runs[activeRun].spanMM > 0 && (() => {
-                const span = runs[activeRun].spanMM;
-                const droppers = Math.max(0, Math.ceil(span / 1200) - 1);
-                const totalPosts = 2 + droppers;
+                const span     = runs[activeRun].spanMM;
+                const intPosts = runs[activeRun].intermediatePostCount || 0;
+                const bays     = intPosts + 1;
+                const baySpan  = span / bays;
+                const droppers = Array.from({ length: bays }, () => Math.max(0, Math.ceil(baySpan / 1200) - 1)).reduce((a, b) => a + b, 0);
+                const totalPosts = 2 + intPosts + droppers;
                 return (
                   <div style={{ background: '#f0f9ff', borderRadius: 6, padding: '8px 12px', fontSize: 12, color: '#0369a1', marginTop: 10 }}>
-                    {span}mm span · {totalPosts} posts ({droppers} dropper{droppers !== 1 ? 's' : ''})
+                    {span}mm span
+                    {intPosts > 0 && <span> · {bays} bays @ {Math.round(baySpan)}mm</span>}
+                    {' · '}{totalPosts} posts total ({droppers} dropper{droppers !== 1 ? 's' : ''}{intPosts > 0 ? `, ${intPosts} intermediate` : ''})
                   </div>
                 );
               })()}
@@ -570,7 +594,7 @@ export default function WireCalculator() {
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                   <thead>
                     <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
-                      {['Run', 'Span', 'Wires', 'Centres', 'Bottom Gap', 'Droppers', 'Wire (m)'].map((h) => (
+                      {['Run', 'Span', 'Bays', 'Bay Span', 'Wires', 'Centres', 'Bottom Gap', 'Droppers', 'Wire (m)'].map((h) => (
                         <th key={h} style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 600, color: '#6b7280', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>{h}</th>
                       ))}
                     </tr>
@@ -580,6 +604,14 @@ export default function WireCalculator() {
                       <tr key={i} style={{ borderBottom: i < perRun.length - 1 ? '1px solid #f3f4f6' : 'none' }}>
                         <td style={{ padding: '8px 12px', fontWeight: 700, color: '#0369a1' }}>Run {r.label}</td>
                         <td style={{ padding: '8px 12px', color: '#374151' }}>{r.spanMM}mm</td>
+                        <td style={{ padding: '8px 12px', color: '#374151' }}>
+                          {r.subBayCount === 1 ? '—' : (
+                            <span style={{ color: '#0369a1', fontWeight: 600 }}>{r.subBayCount}</span>
+                          )}
+                        </td>
+                        <td style={{ padding: '8px 12px', color: '#374151' }}>
+                          {r.subBayCount === 1 ? '—' : `${r.subBaySpanMM}mm`}
+                        </td>
                         <td style={{ padding: '8px 12px', color: '#374151', fontWeight: 600 }}>{r.wireCount}</td>
                         <td style={{ padding: '8px 12px', color: '#374151' }}>{r.wireCentresMM}mm</td>
                         <td style={{ padding: '8px 12px', color: '#374151' }}>{r.bottomGapMM !== null ? `${r.bottomGapMM}mm` : '—'}</td>
@@ -602,7 +634,10 @@ export default function WireCalculator() {
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {runs.map((r, i) => {
-              const droppers = Math.max(0, Math.ceil(r.spanMM / 1200) - 1);
+              const intPosts = r.intermediatePostCount || 0;
+              const bays     = intPosts + 1;
+              const baySpan  = r.spanMM / bays;
+              const droppers = Array.from({ length: bays }, () => Math.max(0, Math.ceil(baySpan / 1200) - 1)).reduce((a, b) => a + b, 0);
               return (
                 <div
                   key={i}
@@ -618,7 +653,10 @@ export default function WireCalculator() {
                 >
                   <div style={{ fontSize: 12, fontWeight: 700, color: '#0369a1', marginBottom: 3 }}>Run {r.label}</div>
                   <div style={{ fontSize: 11, color: '#6b7280' }}>{r.spanMM}mm span</div>
-                  <div style={{ fontSize: 11, color: '#9ca3af' }}>{droppers} dropper{droppers !== 1 ? 's' : ''}</div>
+                  <div style={{ fontSize: 11, color: '#9ca3af' }}>
+                    {droppers} dropper{droppers !== 1 ? 's' : ''}
+                    {intPosts > 0 && <span> · {intPosts} int. post{intPosts !== 1 ? 's' : ''}</span>}
+                  </div>
                 </div>
               );
             })}
