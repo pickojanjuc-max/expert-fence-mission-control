@@ -98,6 +98,30 @@ export default function AireCalculator() {
 
   const [activeRun, setActiveRun] = useState(0);
 
+  // SKU → image URL (loaded from supplier CSV)
+  const [skuToImage, setSkuToImage] = useState({});
+  useEffect(() => {
+    let alive = true;
+    fetch('/data/supplier_sku_image_map.csv')
+      .then((r) => (r.ok ? r.text() : ''))
+      .then((text) => {
+        if (!alive) return;
+        const lines = String(text || '').trim().split(/\r?\n/);
+        if (lines.length < 2) return;
+        const headers = lines[0].split(',').map((h) => h.trim());
+        const m = {};
+        for (const line of lines.slice(1)) {
+          const cells = line.split(',');
+          const row = {};
+          headers.forEach((h, i) => { row[h] = (cells[i] || '').trim(); });
+          if (row.sku) m[String(row.sku).toUpperCase()] = row.image_url || '';
+        }
+        setSkuToImage(m);
+      })
+      .catch(() => { if (alive) setSkuToImage({}); });
+    return () => { alive = false; };
+  }, []);
+
   // Save/project
   const [projectId,      setProjectId]      = useState(null);
   const [projectName,    setProjectName]    = useState('');
@@ -460,6 +484,7 @@ export default function AireCalculator() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
                 <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+                  <th style={{ textAlign: 'left', padding: '10px 14px', fontWeight: 600, color: '#374151', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Image</th>
                   <th style={{ textAlign: 'left', padding: '10px 14px', fontWeight: 600, color: '#374151', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>SKU</th>
                   <th style={{ textAlign: 'left', padding: '10px 14px', fontWeight: 600, color: '#374151', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Description</th>
                   <th style={{ textAlign: 'center', padding: '10px 14px', fontWeight: 600, color: '#374151', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Qty</th>
@@ -478,6 +503,17 @@ export default function AireCalculator() {
                   const lineSell = item['Line Sell (ex GST)'] || 0;
                   return (
                     <tr key={i} style={{ borderBottom: i < enrichedBOM.length - 1 ? '1px solid #f3f4f6' : 'none', background: i % 2 === 0 ? 'white' : '#fafafa' }}>
+                      <td style={{ padding: '9px 14px' }}>
+                        {(() => {
+                          const key = String(item.sku || '').toUpperCase();
+                          const imageUrl = skuToImage[key] || COST_MAP[key]?.img || '';
+                          return imageUrl ? (
+                            <img src={imageUrl} alt={item.sku} loading="lazy" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 4, border: '1px solid #e5e7eb' }} />
+                          ) : (
+                            <span style={{ fontSize: 10, color: '#9ca3af' }}>—</span>
+                          );
+                        })()}
+                      </td>
                       <td style={{ padding: '9px 14px', fontFamily: 'monospace', fontSize: 12, color: '#374151', fontWeight: 500 }}>
                         {item.sku}
                       </td>
@@ -501,7 +537,7 @@ export default function AireCalculator() {
               {hasPricing && (
                 <tfoot>
                   <tr style={{ borderTop: '2px solid #e5e7eb', background: '#f9fafb' }}>
-                    <td colSpan={4} style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'right', color: '#374151', fontSize: 13 }}>
+                    <td colSpan={5} style={{ padding: '10px 14px', fontWeight: 700, textAlign: 'right', color: '#374151', fontSize: 13 }}>
                       Total (ex GST)
                     </td>
                     <td style={{ padding: '10px 14px', textAlign: 'right' }}></td>
