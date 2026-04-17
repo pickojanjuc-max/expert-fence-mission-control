@@ -329,12 +329,42 @@ export default function DashboardClient({ email, plan }) {
             <button
               style={buttonStyle}
               onClick={() => handleCalculatorClick('/calculator/balustrade')}
-              onMouseEnter={(e) => {
-                e.target.style.backgroundColor = '#1d4ed8';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.backgroundColor = '#2563eb';
-              }}
+              onMouseEnter={(e) => { e.target.style.backgroundColor = '#1d4ed8'; }}
+              onMouseLeave={(e) => { e.target.style.backgroundColor = '#2563eb'; }}
+            >
+              Open Calculator
+            </button>
+          </div>
+
+          {/* Stainless Wire Card */}
+          <div
+            style={cardStyle} className="ef-card"
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = '#0ea5e9';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(14, 165, 233, 0.1)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = '#e5e7eb';
+              e.currentTarget.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.05)';
+            }}
+          >
+            <div style={{ ...iconAreaGlassStyle, background: '#f0f9ff', color: '#0284c7' }} className="ef-card-icon">
+              <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+                <rect x="8" y="8" width="4" height="24" fill="currentColor" rx="1" />
+                <rect x="28" y="8" width="4" height="24" fill="currentColor" rx="1" />
+                <line x1="12" y1="14" x2="28" y2="14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                <line x1="12" y1="18" x2="28" y2="18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                <line x1="12" y1="22" x2="28" y2="22" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                <line x1="12" y1="26" x2="28" y2="26" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </div>
+            <h3 style={cardTitleStyle}>Stainless Wire Balustrade</h3>
+            <p style={cardDescriptionStyle}>1×19×3.2mm SS wire, dropper posts and fittings</p>
+            <button
+              style={{ ...buttonStyle, backgroundColor: '#0369a1' }}
+              onClick={() => handleCalculatorClick('/calculator/wire')}
+              onMouseEnter={(e) => { e.target.style.backgroundColor = '#075985'; }}
+              onMouseLeave={(e) => { e.target.style.backgroundColor = '#0369a1'; }}
             >
               Open Calculator
             </button>
@@ -366,8 +396,8 @@ export default function DashboardClient({ email, plan }) {
                   complete: { bg: '#d1fae5', text: '#059669' },
                 };
                 const sc = statusColors[p.status] || statusColors.draft;
-                const calcTypeLabels = { glass: 'Glass Pool Fencing', aluminium: 'Aluminium Fencing', balustrade: 'Glass Balustrade' };
-                const calcTypeIcons = { glass: '🔷', aluminium: '🔶', balustrade: '🟦' };
+                const calcTypeLabels = { glass: 'Glass Pool Fencing', aluminium: 'Aluminium Fencing', balustrade: 'Glass Balustrade', wire: 'Stainless Wire Balustrade', aire: 'AIRE+ Balustrade' };
+                const calcTypeIcons = { glass: '🔷', aluminium: '🔶', balustrade: '🟦', wire: '🔩', aire: '🟫' };
 
                 return (
                   <div
@@ -411,9 +441,8 @@ export default function DashboardClient({ email, plan }) {
                           <div
                             key={c.id}
                             onClick={() => {
-                              let path = '/calculator/glass';
-                              if (c.calculator_type === 'aluminium') path = '/calculator/aluminium';
-                              else if (c.calculator_type === 'balustrade') path = '/calculator/balustrade';
+                              const routes = { glass: '/calculator/glass', aluminium: '/calculator/aluminium', balustrade: '/calculator/balustrade', wire: '/calculator/wire', aire: '/calculator/aire' };
+                              const path = routes[c.calculator_type] || '/calculator/glass';
                               router.push(`${path}?calc=${c.id}`);
                             }}
                             style={{
@@ -444,9 +473,8 @@ export default function DashboardClient({ email, plan }) {
                     {calcs.length === 0 && p.calculator_type && (
                       <div
                         onClick={() => {
-                          let path = '/calculator/glass';
-                          if (p.calculator_type === 'aluminium') path = '/calculator/aluminium';
-                          else if (p.calculator_type === 'balustrade') path = '/calculator/balustrade';
+                          const routes = { glass: '/calculator/glass', aluminium: '/calculator/aluminium', balustrade: '/calculator/balustrade', wire: '/calculator/wire', aire: '/calculator/aire' };
+                          const path = routes[p.calculator_type] || '/calculator/glass';
                           router.push(`${path}?project=${p.id}`);
                         }}
                         style={{

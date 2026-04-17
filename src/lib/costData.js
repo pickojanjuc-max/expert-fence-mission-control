@@ -133,6 +133,7 @@ const RAW_COSTS = [
   { sku: 'BW-FTM5-3.2', cost: 1.24, sell: 1.74, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/BW-FTM5-3.2.JPG' },
   { sku: 'BW-M6X60-LS', cost: 0.78, sell: 1.09, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/BW-M6X60-LS.JPG' },
   { sku: 'BW-RSM5-3.2', cost: 2.91, sell: 4.07, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/BW-RSM5-3.2.JPG' },
+  { sku: 'BW-5010-1000BP-P', cost: 0, sell: 0, img: '' },  // custom dropper 1000mm — pricing TBC
   // White tubular variants (zero cost — sell only) — using black variant fallback
   { sku: 'XP-1300-BP-W', cost: 0, sell: 30.06, img: '' },
   { sku: 'XP-DR-W', cost: 0, sell: 2.35, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/XP-DR-B.JPG' },
