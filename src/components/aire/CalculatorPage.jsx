@@ -281,7 +281,14 @@ export default function AireCalculator() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', padding: '24px 20px', minHeight: '100vh', background: '#f9fafb' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#f9fafb' }}>
+      {/* Top nav */}
+      <header style={{ background: 'white', borderBottom: '1px solid #e5e7eb', padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+        <a href="/dashboard" style={{ fontSize: 13, color: '#2563eb', fontWeight: 500, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>← Dashboard</a>
+        <div style={{ width: 1, height: 16, background: '#e5e7eb' }} />
+        <span style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>AIRE+ Balustrade Calculator</span>
+      </header>
+    <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', padding: '24px 20px', flex: 1 }}>
 
       {/* ── LEFT PANEL ── */}
       <div style={{ width: 300, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -733,6 +740,7 @@ export default function AireCalculator() {
         currentCalculationId={calculationId}
         label="AIRE+ Balustrade"
       />
+    </div>
     </div>
   );
 }

@@ -129,10 +129,10 @@ export default function DashboardClient({ email, plan }) {
   };
 
   const gridContainerStyle = {
-    maxWidth: '920px',
+    maxWidth: '960px',
     margin: '0 auto',
     display: 'grid',
-    gridTemplateColumns: '1fr 1fr 1fr',
+    gridTemplateColumns: 'repeat(3, 1fr)',
     gap: '20px',
   };
 
@@ -365,6 +365,39 @@ export default function DashboardClient({ email, plan }) {
               onClick={() => handleCalculatorClick('/calculator/wire')}
               onMouseEnter={(e) => { e.target.style.backgroundColor = '#075985'; }}
               onMouseLeave={(e) => { e.target.style.backgroundColor = '#0369a1'; }}
+            >
+              Open Calculator
+            </button>
+          </div>
+
+          {/* AIRE+ Balustrade Card */}
+          <div
+            style={cardStyle} className="ef-card"
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = '#92400e';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(146, 64, 14, 0.1)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = '#e5e7eb';
+              e.currentTarget.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.05)';
+            }}
+          >
+            <div style={{ ...iconAreaAluminium, background: '#1e3a5f', color: '#bfdbfe' }} className="ef-card-icon">
+              <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+                <rect x="8" y="8" width="4" height="24" fill="currentColor" rx="1" />
+                <rect x="18" y="8" width="3" height="24" fill="currentColor" opacity="0.7" rx="1" />
+                <rect x="28" y="8" width="4" height="24" fill="currentColor" rx="1" />
+                <line x1="8" y1="8" x2="32" y2="8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                <line x1="8" y1="32" x2="32" y2="32" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            </div>
+            <h3 style={cardTitleStyle}>AIRE+ Balustrade</h3>
+            <p style={cardDescriptionStyle}>Picket or slat infill, base plate or face mount</p>
+            <button
+              style={{ ...buttonStyle, backgroundColor: '#1e3a5f' }}
+              onClick={() => handleCalculatorClick('/calculator/aire')}
+              onMouseEnter={(e) => { e.target.style.backgroundColor = '#1e40af'; }}
+              onMouseLeave={(e) => { e.target.style.backgroundColor = '#1e3a5f'; }}
             >
               Open Calculator
             </button>
