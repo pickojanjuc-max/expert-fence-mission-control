@@ -1,45 +1,55 @@
 /**
- * AIRE+ Horizontal Slat Balustrade — BOM Builder
+ * AIRE+ Balustrade — BOM Builder
  *
- * Ported from ef-air-materials-calculator-plugin-v1.0.4 (PHP).
+ * Ported from ef-air-materials-calculator-plugin v0.1.2 (PHP).
  *
- * Key system specs (AIRE+ horizontal slat — different from AIR vertical):
- *   - 50×50mm posts, max 1800mm post centres
- *   - 65×16.5mm HORIZONTAL slats, 9mm gap between slats → 74mm pitch
- *   - Default bottom gap: 88mm (ground to underside of first slat)
- *   - Post types: Base Plate (AR-1050-FPBP), Core Drill (AR-5800-FP cut to height)
- *   - Handrail: Oval (A50-5800-OHR) or Rectangular (A50-5800-RHR) — 5800mm stock
- *   - Slat stock: XP-6100-S65 — 6100mm stock, cut to bay clear width
- *   - Bottom rail: AR-5800-BR — 5800mm stock
- *   - Insert: AR-3022-INS-65 — 3022mm stock (for 65mm slats)
- *   - Colours: B (Satin Black), MN (Monument), W (Pearl White), M (Mill)
- *   - SKUs: most are base + colour suffix, e.g. AR-1050-FPBP-B
- *           Mounting plates: AR-PLATE-{col}-2PK
+ * Supports two infill types:
+ *   Picket  — AR-5600-PB  vertical pickets, 110mm horizontal pitch
+ *   Slat    — XP-6100-S65 vertical slats, 66mm face + 64mm gap = 130mm pitch
+ *
+ * Two mount types:
+ *   BasePlate — AR-1050-FPBP (post + base plate)
+ *   FaceMount — AR-1500-FMLR (face-mounted bracket)
+ *
+ * Two styles:
+ *   Full    — single bottom rail per bay
+ *   3-Rail  — double bottom rail per bay
+ *
+ * Member sizing (matches PHP compute_engine + build_setout):
+ *   member_height = overall_height − bottom_gap − 20mm
+ *   (3-rail deducts an extra 50mm for mid-rail)
+ *   yield_per_stick = floor(stock_mm / member_height)
+ *   Pickets ordered in packs of 4; slats ordered individually.
  */
 
-// ── Physical constants (from PHP plugin + AIRE+ catalogue) ────────────────────
+// ── Physical constants ─────────────────────────────────────────────────────────
 
 const MAX_SPAN_MM         = 1800.0;
-const SLAT_PITCH_MM       = 74.0;     // 65mm face + 9mm gap
-const SLAT_STOCK_MM       = 6100.0;   // XP-6100-S65
+
+// Picket infill
+const PICKET_PITCH_MM     = 110.0;    // horizontal spacing between pickets
+const PICKET_W_MM         = 16.5;     // picket face width (AR-5600-PB)
+const PICKET_STOCK_MM     = 5600.0;   // AR-5600-PB stock length
+const PICKET_PACK_QTY     = 4;        // pickets sold in packs of 4
+
+// Slat infill
+const SLAT_SLOT_W_MM      = 66.0;     // slat slot width
+const SLAT_GAP_MM         = 64.0;     // gap between slats
+const SLAT_STOCK_MM       = 6100.0;   // XP-6100-S65 stock length
+
+// Rail / handrail stock
 const BOT_RAIL_STOCK_MM   = 5800.0;   // AR-5800-BR
-const INSERT_STOCK_MM     = 3022.0;   // AR-3022-INS-65
+const INSERT_STOCK_MM     = 3022.0;   // AR-3022-INS-65 (slat) / AR-3250-INS-16 stock ~ 3022
 const HANDRAIL_STOCK_MM   = 5800.0;   // A50-5800-OHR / RHR
-const FULL_POST_STOCK_MM  = 5800.0;   // AR-5800-FP (core drill, cut to height)
 
-// Handrail overhang each side past end post
-const HR_OVERHANG_MM = 85.0;
-
-// Post width (50mm sq) — deducted to get clear bay width
-const POST_WIDTH_MM = 50.0;
-
-// Setout deduction: total run deducted to convert run length → post-to-post span basis
-// (2 × 85mm end overhang = 170mm, same as PHP source)
-const RUN_END_DEDUCT_MM = 170.0;
+// Post / geometry
+const POST_WIDTH_MM       = 50.0;
+const TOP_RAIL_HEIGHT_MM  = 50.0;     // mid-rail deduction for 3-rail style
+const MEMBER_CLEAR_MM     = 20.0;     // clearance above bottom gap for member height
 
 // ── Bin-packing (matches PHP optimize_stock_cuts) ─────────────────────────────
 
-function optimizeStockCuts(cutLengthsMM, stockLengthMM, minUsableOffcutMM = 0) {
+function optimizeStockCuts(cutLengthsMM, stockLengthMM) {
   const pieces = cutLengthsMM.map(Number).filter((x) => x > 0).sort((a, b) => b - a);
   const bins = [];
 
@@ -67,69 +77,97 @@ function roundPack(units, packSize) {
   return Math.max(0, Math.ceil(Math.max(0, units) / Math.max(1, packSize)));
 }
 
-// ── Setout: slat layout per bay (HORIZONTAL slat version) ─────────────────────
+// ── Setout: member layout per bay (VERTICAL members) ──────────────────────────
 //
-// For HORIZONTAL slats: slats run bay-width, stacked by height.
-//   - Clear height = overall_height - bottom_gap
-//   - Slat rows    = floor(clear_height / SLAT_PITCH)
-//   - Slat cut len = clear_mm (clear bay width)
+// Members (pickets or slats) run vertically.
+// n per bay = based on BAY CLEAR WIDTH.
+// Member cut length = based on RUN HEIGHT.
 //
-// Returns per-bay layout info + total slat pieces + cut lengths for bin-packing.
+// For picket: n = floor(clear_mm / 110)
+// For slat:   n = floor((clear_mm + 64) / (66 + 64))
+//
+// Returns: bayRows, totalMembers, insertCutLengths, bottomCutLengths
 
-function buildSetout(runs, style, bottomGap) {
+function buildSetout(runs, styleKey, infillKey, defaultBg = 65) {
   const bayRows = [];
-  let totalSlats = 0;
-  const slatCutLengths = [];   // one entry per slat piece (for stock optimisation)
+  let totalMembers = 0;
   const insertCutLengths = [];
   const bottomCutLengths = [];
+  const insertLanes = styleKey === '3-rail' ? 2 : 1;
+  const botLanes    = styleKey === '3-rail' ? 2 : 1;
 
   for (const run of runs) {
     if (!run.active || run.length <= 0) continue;
 
-    const runMM    = Math.max(300, run.length);
-    const heightMM = Math.max(300, run.height || 1000);
-    const bgMM     = Math.max(0,   run.bottomGap !== undefined ? run.bottomGap : bottomGap);
+    const runMM     = Math.max(300, run.length);
+    const bgMM      = run.bottomGap !== undefined ? Math.max(0, run.bottomGap) : defaultBg;
     const spanLimit = Math.max(300, Math.min(MAX_SPAN_MM, run.maxPostSpan || MAX_SPAN_MM));
+    const bays      = Math.max(1, Math.ceil(runMM / spanLimit));
 
-    const bays   = Math.max(1, Math.ceil(runMM / spanLimit));
-    const bayCc  = runMM / bays;  // bay centre-to-centre
+    const start = run.end1 || 'post';
+    const end   = run.end2 || 'post';
 
-    // Setout: clear per bay (from PHP — deduct 170mm total, then 50mm per bay for posts)
-    // Simplified for AIRE+: clear = bay_cc - POST_WIDTH_MM
-    const clearMM = Math.max(50, bayCc - POST_WIDTH_MM);
+    // Bay clear width — matches PHP build_setout logic
+    let clearMM;
+    if (start !== 'wall' && end !== 'wall') {
+      // Both ends have posts: deduct 170mm (85mm overhang each end) then divide by bays
+      const centreMM = Math.max(0, (runMM - 170.0) / Math.max(1, bays));
+      clearMM = Math.max(0, centreMM - POST_WIDTH_MM);
+    } else {
+      const bayCc = runMM / bays;
+      clearMM = Math.max(0, bayCc - POST_WIDTH_MM);
+    }
 
-    // Horizontal slat rows per bay (height-based, not width-based)
-    const clearHeight = Math.max(0, heightMM - bgMM);
-    const slatRows = Math.max(0, Math.floor(clearHeight / SLAT_PITCH_MM));
+    // Members per bay (based on clear width)
+    let n;
+    if (infillKey === 'picket') {
+      n = Math.max(1, Math.floor(clearMM / PICKET_PITCH_MM));
+    } else {
+      // slat: vertical slats with slot_w=66mm, gap=64mm
+      n = Math.max(1, Math.floor((clearMM + SLAT_GAP_MM) / (SLAT_SLOT_W_MM + SLAT_GAP_MM)));
+    }
+
+    // Layout offsets for preview
+    let usedMM, edgeMM;
+    if (infillKey === 'picket') {
+      usedMM = (n - 1) * PICKET_PITCH_MM + PICKET_W_MM;
+      edgeMM = Math.max(0, (clearMM - usedMM) / 2);
+    } else {
+      usedMM = n * SLAT_SLOT_W_MM + (n - 1) * SLAT_GAP_MM;
+      edgeMM = Math.max(0, (clearMM - usedMM) / 2);
+    }
+
+    const bayCc = runMM / bays;
 
     for (let bay = 1; bay <= bays; bay++) {
-      bayRows.push({ run: run.label, bay, bayCc: Math.round(bayCc, 1), clearMM: Math.round(clearMM, 1), slatRows });
-      totalSlats += slatRows;
+      bayRows.push({
+        run:     run.label,
+        bay,
+        bayCc:   Math.round(bayCc * 10) / 10,
+        clearMM: Math.round(clearMM * 10) / 10,
+        members: n,
+        pitch:   infillKey === 'picket' ? PICKET_PITCH_MM : (SLAT_SLOT_W_MM + SLAT_GAP_MM),
+        leftOffset:  Math.round(edgeMM * 10) / 10,
+        rightOffset: Math.round(edgeMM * 10) / 10,
+      });
+      totalMembers += n;
 
-      // One slat piece per row per bay, cut to clearMM
-      for (let s = 0; s < slatRows; s++) slatCutLengths.push(clearMM);
-
-      // One insert per bay (for 3022mm stock)
-      const insertLanes = style === '3-rail' ? 2 : 1;
       for (let i = 0; i < insertLanes; i++) insertCutLengths.push(clearMM);
-
-      const botLanes = style === '3-rail' ? 2 : 1;
-      for (let i = 0; i < botLanes; i++) bottomCutLengths.push(clearMM);
+      for (let i = 0; i < botLanes;    i++) bottomCutLengths.push(clearMM);
     }
   }
 
-  return { bayRows, totalSlats, slatCutLengths, insertCutLengths, bottomCutLengths };
+  return { bayRows, totalMembers, insertCutLengths, bottomCutLengths };
 }
 
 // ── Per-run post & rail counts (ported from PHP compute_engine) ───────────────
 
-function computeRunCounts(run, style) {
-  const runMM    = Math.max(300, run.length);
+function computeRunCounts(run, styleKey) {
+  const runMM     = Math.max(300, run.length);
   const spanLimit = Math.max(300, Math.min(MAX_SPAN_MM, run.maxPostSpan || MAX_SPAN_MM));
-  const bays     = Math.max(1, Math.ceil(runMM / spanLimit));
-  const bayCc    = runMM / bays;
+  const bays      = Math.max(1, Math.ceil(runMM / spanLimit));
+  const bayCc     = runMM / bays;
 
-  // End types: 'post' | 'half_post' | 'wall'
   const start = run.end1 || 'post';
   const end   = run.end2 || 'post';
 
@@ -138,19 +176,15 @@ function computeRunCounts(run, style) {
   const halfPosts = (start === 'half_post' ? 1 : 0) + (end === 'half_post' ? 1 : 0);
   const fullPosts = Math.max(0, (bays - 1) + startPost + endPost - halfPosts);
 
-  const bottomRails = style === '3-rail' ? bays * 2 : bays;
+  const bottomRails    = styleKey === '3-rail' ? bays * 2 : bays;
+  const connectionPts  = bottomRails * 2;
 
-  // Connection points = (rails × 2 ends each) — for mounting plates
-  const connectionPoints = bottomRails * 2;
-
-  // Open ends (get end cap + bracket)
   const wallEnds = (start === 'wall' ? 1 : 0) + (end === 'wall' ? 1 : 0);
   const openEnds = Math.max(0, 2 - wallEnds);
 
-  // Handrail mm for this run (bay_cc × bays as per PHP)
   const handrailMM = bays * bayCc;
 
-  return { bays, bayCc, fullPosts, halfPosts, bottomRails, connectionPoints, openEnds, wallEnds, handrailMM };
+  return { bays, bayCc, fullPosts, halfPosts, bottomRails, connectionPts, openEnds, wallEnds, handrailMM };
 }
 
 // ── Main BOM builder ──────────────────────────────────────────────────────────
@@ -159,90 +193,105 @@ function computeRunCounts(run, style) {
  * Build full BOM for all active runs.
  *
  * @param {Array}  runs  - array of run config objects
- * @param {object} opts  - { colour, handrailType, postType, style }
+ * @param {object} opts  - { colour, handrailType, mountType, infillType, fenceStyle, sharedCorners }
  * @returns {{ consolidated: Array, validation: Array, setout: Array }}
  */
 export function buildAireBOM(runs, opts) {
-  const { colour = 'B', handrailType = 'Oval', postType = 'BasePlate', style = 'Full' } = opts;
-  const col       = colour;
-  const styleKey  = style === '3-Rail' ? '3-rail' : 'full';
-  const bottomGap = 88;  // AIRE+ system default (mm)
+  const {
+    colour       = 'B',
+    handrailType = 'Oval',
+    mountType    = 'BasePlate',   // 'BasePlate' | 'FaceMount'
+    infillType   = 'Slat',        // 'Slat' | 'Picket'
+    fenceStyle   = 'Full',        // 'Full' | '3-Rail'
+    sharedCorners = 0,
+  } = opts;
+
+  const col        = colour;
+  const styleKey   = fenceStyle === '3-Rail' ? '3-rail' : 'full';
+  const infillKey  = infillType === 'Picket' ? 'picket' : 'slat';
+  const defaultBg  = 65;  // matches PHP $bg = 65
 
   const validation = [];
   const activeRuns = runs.filter((r) => r.active !== false && r.length > 0);
 
   if (activeRuns.length === 0) return { consolidated: [], validation: [], setout: [] };
 
+  // ── Infill-specific SKU selection ────────────────────────────────────────
+  const insertSKUBase = infillKey === 'picket' ? 'AR-3250-INS-16' : 'AR-3022-INS-65';
+  const spacerSKUBase = infillKey === 'picket' ? 'AR-SPACER-93MM' : 'AR-SPACER-65MM';
+  const memberSKUBase = infillKey === 'picket' ? 'AR-5600-PB'     : 'XP-6100-S65';
+  const memberStock   = infillKey === 'picket' ? PICKET_STOCK_MM  : SLAT_STOCK_MM;
+
   // ── Aggregate counts across all runs ────────────────────────────────────
-  let totalFullPosts       = 0;
-  let totalHalfPosts       = 0;
-  let totalConnectionPts   = 0;
-  let totalOpenEnds        = 0;
-  let totalWallEnds        = 0;
-  let totalBays            = 0;
-  let totalHandrailMM      = 0;
-  let screwUnits           = 0;  // for AR-SCR-BR-50PK
-  let tekUnits             = 0;  // for SS-TS-50-SS304
-  let cskUnits             = 0;  // for CSK-12GX50-50PK
+  let totalFullPosts     = 0;
+  let totalHalfPosts     = 0;
+  let totalConnectionPts = 0;
+  let totalOpenEnds      = 0;
+  let totalWallEnds      = 0;
+  let totalBays          = 0;
+  let totalHandrailMM    = 0;
+  let screwUnits         = 0;
+  let tekUnits           = 0;
+  let cskUnits           = 0;
 
   for (const run of activeRuns) {
     const rc = computeRunCounts(run, styleKey);
     totalFullPosts     += rc.fullPosts;
     totalHalfPosts     += rc.halfPosts;
-    totalConnectionPts += rc.connectionPoints;
+    totalConnectionPts += rc.connectionPts;
     totalOpenEnds      += rc.openEnds;
     totalWallEnds      += rc.wallEnds;
     totalBays          += rc.bays;
     totalHandrailMM    += rc.handrailMM;
 
-    // Screws per run (from PHP: full=4/bay tek=1/bay csk=8/bay; 3-rail=8/bay tek=0 csk=16/bay)
     if (styleKey === 'full') {
       screwUnits += rc.bays * 4;
       tekUnits   += rc.bays * 1;
       cskUnits   += rc.bays * 8;
     } else {
       screwUnits += rc.bays * 8;
-      tekUnits   += 0;
       cskUnits   += rc.bays * 16;
     }
 
-    // Validation
     if (run.maxPostSpan > 1800) {
       validation.push(`Run ${run.label}: max post span exceeds 1800mm certification limit.`);
     }
   }
 
-  // Shared corners reduction (optional — subtract from post total)
-  const cornerReduction = Math.min(opts.sharedCorners || 0, totalFullPosts);
+  // Shared corners reduction
+  const cornerReduction = Math.min(sharedCorners || 0, totalFullPosts);
   totalFullPosts -= cornerReduction;
 
-  // ── Setout: slat cut lists + stock optimisation ──────────────────────────
-  const setout = buildSetout(activeRuns, styleKey, bottomGap);
+  // ── Setout: member layout + stock calculation ────────────────────────────
+  const setout = buildSetout(activeRuns, styleKey, infillKey, defaultBg);
 
-  // Slat stock (6100mm, cut to clear bay width)
-  const slatStocks   = optimizeStockCuts(setout.slatCutLengths,   SLAT_STOCK_MM, 0).stocks;
-  // Insert stock (3022mm)
-  const insertStocks = optimizeStockCuts(setout.insertCutLengths, INSERT_STOCK_MM, styleKey === 'picket' ? 110 : 130).stocks;
+  // Member height (cut from stock) — use first active run's height
+  const repRun    = activeRuns[0];
+  const repH      = Math.max(500, repRun.height || 1000);
+  const repBg     = repRun.bottomGap !== undefined ? Math.max(0, repRun.bottomGap) : defaultBg;
+  const memberH   = styleKey === '3-rail'
+    ? Math.max(1, Math.round(repH - repBg - TOP_RAIL_HEIGHT_MM - MEMBER_CLEAR_MM))
+    : Math.max(1, Math.round(repH - repBg - MEMBER_CLEAR_MM));
+
+  const yieldPerStick    = Math.max(1, Math.floor(memberStock / memberH));
+  const requiredSticks   = Math.ceil(setout.totalMembers / yieldPerStick);
+  // Pickets come in packs of 4; slats ordered individually
+  const orderSticks = infillKey === 'picket'
+    ? Math.ceil(requiredSticks / PICKET_PACK_QTY) * PICKET_PACK_QTY
+    : requiredSticks;
+
+  // Insert stock (3022mm cut to bay clear width)
+  const insertStocks = optimizeStockCuts(setout.insertCutLengths, INSERT_STOCK_MM).stocks;
   // Bottom rail stock (5800mm)
-  const brStocks     = optimizeStockCuts(setout.bottomCutLengths, BOT_RAIL_STOCK_MM, 0).stocks;
-  // Handrail stock (5800mm)
+  const brStocks     = optimizeStockCuts(setout.bottomCutLengths, BOT_RAIL_STOCK_MM).stocks;
+  // Handrail stock
   const hrStocks     = Math.ceil(totalHandrailMM / HANDRAIL_STOCK_MM);
 
-  // Post stock for core drill (cut from 5800mm, height + 100mm embed depth)
-  let cdPostStocks = 0;
-  if (postType === 'CoreDrill') {
-    // Use height of first active run as representative (posts are all same height)
-    const repHeight = activeRuns[0]?.height || 1000;
-    const cdCutMM   = repHeight + 100;
-    const cdPerStock = Math.max(1, Math.floor(FULL_POST_STOCK_MM / cdCutMM));
-    cdPostStocks = Math.ceil(totalFullPosts / cdPerStock);
-  }
-
-  // ── Spacers per bay (full style only — 1 pack of 20 per bay, per PHP) ───
-  const spacerPacksQty = styleKey === 'full' ? totalBays : 0;
-
-  // ── Mounting plates: ceil(connection_points / 2) ─────────────────────────
+  // ── Mounting plates: ceil(connection_pts / 2) ─────────────────────────────
   const mountPlatesQty = roundPack(totalConnectionPts, 2);
+
+  // ── Spacers per bay (full style only, 1 per bay per PHP) ─────────────────
+  const spacerQty = styleKey === 'full' ? totalBays : 0;
 
   // ── Assemble BOM ──────────────────────────────────────────────────────────
   const bom = new Map();
@@ -257,80 +306,75 @@ export function buildAireBOM(runs, opts) {
     }
   }
 
-  // Posts
-  if (postType === 'BasePlate') {
-    add(`AR-1050-FPBP-${col}`, totalFullPosts, '1050mm Post with Base Plate', 'ea');
-    if (totalHalfPosts > 0) {
-      add(`A50-1400D-HALF`, totalHalfPosts, '1400mm Half Post', 'ea');
-    }
-    // Domical covers (1 per post — base plate + half posts)
-    add(`XP-DC-2P-${col}`, totalFullPosts + totalHalfPosts, 'Domical Post Cover', 'ea');
+  // ── Posts ─────────────────────────────────────────────────────────────────
+  if (mountType === 'FaceMount') {
+    add(`AR-1500-FMLR-${col}`, totalFullPosts, 'Face Mount Post 1500mm', 'ea');
   } else {
-    // Core drill: cut from 5800mm stock
-    add(`AR-5800-FP-${col}`, cdPostStocks, 'Full Post 5800mm (Core Drill)', 'length');
-    // Dress rings: 2 per post (top + bottom)
-    add(`XP-DR-${col}`, (totalFullPosts + totalHalfPosts) * 2, 'Dress Ring', 'ea');
+    // BasePlate (default)
+    add(`AR-1050-FPBP-${col}`, totalFullPosts, '1050mm Post with Base Plate', 'ea');
+    // Domical covers — one per post (base plate posts only)
+    add(`XP-DC-2P-${col}`, totalFullPosts + totalHalfPosts, 'Domical Post Cover', 'ea');
+  }
+  if (totalHalfPosts > 0) {
+    add(`A50-1400D-HALF`, totalHalfPosts, '1400mm Half Post', 'ea');
   }
 
-  // Bottom rail
+  // ── Bottom rail ───────────────────────────────────────────────────────────
   add(`AR-5800-BR-${col}`, brStocks, 'Bottom Rail 5800mm', 'length');
 
-  // Bottom rail insert (for 65mm horizontal slats)
-  add(`AR-3022-INS-65-${col}`, insertStocks, 'Bottom Rail Insert 3022mm', 'ea');
+  // ── Bottom rail insert ────────────────────────────────────────────────────
+  add(`${insertSKUBase}-${col}`, insertStocks, `Bottom Rail Insert (${infillKey})`, 'ea');
 
-  // Slats (6100mm stock, cut to bay width)
-  add(`XP-6100-S65-${col}`, slatStocks, '65×16.5mm Horizontal Slat 6100mm', 'length');
+  // ── Infill members (pickets or slats) ─────────────────────────────────────
+  if (infillKey === 'picket') {
+    add(`${memberSKUBase}-${col}`, orderSticks, 'Picket 5600mm', 'ea');
+  } else {
+    add(`${memberSKUBase}-${col}`, orderSticks, '65mm Vertical Slat 6100mm', 'length');
+  }
 
-  // Handrail
+  // ── Handrail ──────────────────────────────────────────────────────────────
   if (handrailType === 'Rectangular') {
     add(`A50-5800-RHR-${col}`, hrStocks, 'Rectangular Handrail 5800mm', 'length');
   } else {
     add(`A50-5800-OHR-${col}`, hrStocks, 'Oval Handrail 5800mm', 'length');
   }
 
-  // End caps (for open/free ends)
+  // ── End caps + brackets (open ends) ──────────────────────────────────────
   if (totalOpenEnds > 0) {
     if (handrailType === 'Rectangular') {
       add(`A50-ECA-R-${col}`, totalOpenEnds, 'Rectangular Handrail End Cap', 'ea');
+      add(`A50-BRACKET-R-${col}-2PK`, roundPack(totalOpenEnds, 2), 'Offset Bracket Rect (2pk)', 'pk');
     } else {
       add(`A50-ECA-O-${col}`, totalOpenEnds, 'Oval Handrail End Cap', 'ea');
-    }
-    // Bracket packs for open ends (offset bracket at each free end)
-    const bktPacks = roundPack(totalOpenEnds, 2);
-    if (handrailType === 'Rectangular') {
-      add(`A50-BRACKET-R-${col}-2PK`, bktPacks, 'Offset Bracket Rect (2pk)', 'pk');
-    } else {
-      add(`A50-BRACKET-O-${col}-2PK`, bktPacks, 'Offset Bracket Oval (2pk)', 'pk');
+      add(`A50-BRACKET-O-${col}-2PK`, roundPack(totalOpenEnds, 2), 'Offset Bracket Oval (2pk)', 'pk');
     }
   }
 
-  // Wall posts/wallplates — count of ends going into wall
+  // ── Wall posts/plates ─────────────────────────────────────────────────────
   if (totalWallEnds > 0) {
     add(`A50-WP-${col}`, totalWallEnds, 'Wall Post/Plate', 'ea');
   }
 
-  // Spacers (pack of 20)
-  if (spacerPacksQty > 0) {
-    add(`AR-SPACER-65MM-${col}`, spacerPacksQty, 'Top Spacer 65mm (pk/20)', 'pk');
+  // ── Spacers ───────────────────────────────────────────────────────────────
+  if (spacerQty > 0) {
+    add(`${spacerSKUBase}-${col}`, spacerQty, `Top Spacer (pk/20)`, 'pk');
   }
 
-  // Mounting plates (pack of 2)
+  // ── Mounting plates (pack of 2) ───────────────────────────────────────────
   if (mountPlatesQty > 0) {
     add(`AR-PLATE-${col}-2PK`, mountPlatesQty, 'Bottom Rail Mounting Plate (2pk)', 'pk');
   }
 
-  // Screws
+  // ── Fixings ───────────────────────────────────────────────────────────────
   const brScrewPacks = roundPack(screwUnits, 50);
   if (brScrewPacks > 0) add(`AR-SCR-BR-50PK-${col}`, brScrewPacks, 'Bottom Rail Screws (pk/50)', 'pk');
 
   if (tekUnits > 0) {
-    const tekPacks = roundPack(tekUnits, 50);
-    add('SS-TS-50-SS304', tekPacks, 'Tek Screws SS304 (pk/50)', 'pk');
+    add('SS-TS-50-SS304', roundPack(tekUnits, 50), 'Tek Screws SS304 (pk/50)', 'pk');
   }
 
   if (cskUnits > 0) {
-    const cskPacks = roundPack(cskUnits, 50);
-    add('CSK-12GX50-50PK', cskPacks, 'CSK Screws 12g×50 (pk/50)', 'pk');
+    add('CSK-12GX50-50PK', roundPack(cskUnits, 50), 'CSK Screws 12g×50 (pk/50)', 'pk');
   }
 
   const consolidated = Array.from(bom.values());
@@ -346,18 +390,19 @@ export function defaultAireRun(index = 0) {
     label:       labels[index] || String(index + 1),
     active:      index === 0,
     length:      4200,
-    height:      1000,
-    bottomGap:   88,
-    end1:        'post',      // 'post' | 'half_post' | 'wall'
+    height:      1080,
+    bottomGap:   65,
+    end1:        'post',
     end2:        'post',
     maxPostSpan: 1800,
   };
 }
 
 export const AIRE_DEFAULTS = {
-  colour:      'B',
-  handrailType:'Oval',
-  postType:    'BasePlate',
-  style:       'Full',
+  colour:       'B',
+  handrailType: 'Oval',
+  mountType:    'BasePlate',   // 'BasePlate' | 'FaceMount'
+  infillType:   'Slat',        // 'Slat' | 'Picket'
+  fenceStyle:   'Full',        // 'Full' | '3-Rail'
   sharedCorners: 0,
 };

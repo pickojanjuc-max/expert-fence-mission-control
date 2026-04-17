@@ -2,24 +2,35 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 
 /**
- * Front-elevation SVG preview for the AIRE+ Horizontal Slat calculator.
+ * Front-elevation SVG preview for the AIRE+ calculator.
  *
  * Shows each run as a scaled front view with:
  *   - Posts (dark vertical bars) at each post position
- *   - Horizontal slat rows at 74mm pitch (65mm face + 9mm gap)
+ *   - Vertical infill members (pickets or slats) between posts
  *   - Bottom rail at the base
  *   - Handrail at the top
  *   - Dimension lines: overall length (top) and height (left)
  *   - Bay width annotations between posts
  *   - Wall-end hatching for 'wall' end types
+ *
+ * Props:
+ *   runs       — array of run config objects
+ *   infillType — 'Slat' | 'Picket'  (default: 'Slat')
+ *   fenceStyle — 'Full' | '3-Rail'  (default: 'Full')
  */
 
-const SLAT_PITCH_MM  = 74;   // 65mm face + 9mm gap
-const SLAT_FACE_MM   = 65;   // visible slat height
 const POST_WIDTH_MM  = 50;
-const DEFAULT_BG_MM  = 88;
+const BOTTOM_RAIL_H  = 16;   // mm visual height for bottom rail
+const HANDRAIL_OFFSET = 15;  // mm from top for handrail centre
 
-export default function ElevationPreview({ runs }) {
+// Picket infill
+const PICKET_PITCH_MM = 110;
+const PICKET_W_MM     = 16.5;
+// Slat infill
+const SLAT_SLOT_W_MM  = 66;
+const SLAT_GAP_MM     = 64;
+
+export default function ElevationPreview({ runs, infillType = 'Slat', fenceStyle = 'Full' }) {
   const containerRef = useRef(null);
 
   const draw = useCallback(() => {
@@ -41,45 +52,82 @@ export default function ElevationPreview({ runs }) {
       return;
     }
 
+    const isPicket = (infillType === 'Picket');
+
     // ── Per-run layout calculations ─────────────────────────────────────────
     const layouts = activeRuns.map((run) => {
-      const runMM     = Math.max(300, run.length);
-      const heightMM  = Math.max(300, run.height || 1000);
-      const bgMM      = run.bottomGap !== undefined ? Math.max(0, run.bottomGap) : DEFAULT_BG_MM;
-      const spanLimit = Math.max(300, Math.min(1800, run.maxPostSpan || 1800));
-      const bays      = Math.max(1, Math.ceil(runMM / spanLimit));
-      const bayCc     = runMM / bays;
-
-      const clearHeight = heightMM - bgMM;
-      const slatRows    = Math.max(0, Math.floor(clearHeight / SLAT_PITCH_MM));
+      const runMM      = Math.max(300, run.length);
+      const heightMM   = Math.max(300, run.height || 1080);
+      const bgMM       = run.bottomGap !== undefined ? Math.max(0, run.bottomGap) : 65;
+      const spanLimit  = Math.max(300, Math.min(1800, run.maxPostSpan || 1800));
+      const bays       = Math.max(1, Math.ceil(runMM / spanLimit));
 
       const start = run.end1 || 'post';
       const end   = run.end2 || 'post';
 
-      // Post x-positions in mm (world coords)
+      // Post x-positions (mm world coords)
+      const bayCc = runMM / bays;
       const postXs = [];
       if (start !== 'wall') postXs.push(0);
       for (let i = 1; i < bays; i++) postXs.push(Math.round(i * bayCc));
       if (end !== 'wall') postXs.push(runMM);
 
-      return { run, runMM, heightMM, bgMM, bays, bayCc, slatRows, postXs, start, end };
+      // Bay clear widths (left edge of each bay in mm)
+      const baysInfo = [];
+      for (let b = 0; b < bays; b++) {
+        const bayStartMM = b * bayCc;
+        // Clear width for member placement — same formula as aireBuilder
+        let clearMM;
+        if (start !== 'wall' && end !== 'wall') {
+          const centreMM = Math.max(0, (runMM - 170) / Math.max(1, bays));
+          clearMM = Math.max(0, centreMM - POST_WIDTH_MM);
+        } else {
+          clearMM = Math.max(0, bayCc - POST_WIDTH_MM);
+        }
+
+        // Member count + positions within bay
+        let n, memberPositions; // x-offsets in mm from bay left edge (post left edge)
+        const postLeft = bayStartMM + (start !== 'wall' || b > 0 ? POST_WIDTH_MM / 2 : 0);
+        const clearStart = bayStartMM + (b === 0 && start !== 'wall' ? POST_WIDTH_MM : POST_WIDTH_MM / 2);
+
+        if (isPicket) {
+          n = Math.max(0, Math.floor(clearMM / PICKET_PITCH_MM));
+          const usedMM   = n > 0 ? (n - 1) * PICKET_PITCH_MM + PICKET_W_MM : 0;
+          const edgeMM   = n > 0 ? Math.max(0, (clearMM - usedMM) / 2) : 0;
+          memberPositions = Array.from({ length: n }, (_, j) => ({
+            xMM:  clearStart + edgeMM + j * PICKET_PITCH_MM,
+            wMM:  PICKET_W_MM,
+          }));
+        } else {
+          n = Math.max(0, Math.floor((clearMM + SLAT_GAP_MM) / (SLAT_SLOT_W_MM + SLAT_GAP_MM)));
+          const usedMM   = n > 0 ? n * SLAT_SLOT_W_MM + (n - 1) * SLAT_GAP_MM : 0;
+          const edgeMM   = n > 0 ? Math.max(0, (clearMM - usedMM) / 2) : 0;
+          memberPositions = Array.from({ length: n }, (_, j) => ({
+            xMM:  clearStart + edgeMM + j * (SLAT_SLOT_W_MM + SLAT_GAP_MM),
+            wMM:  SLAT_SLOT_W_MM,
+          }));
+        }
+
+        baysInfo.push({ bayStartMM, bayCc, clearMM, memberPositions });
+      }
+
+      return { run, runMM, heightMM, bgMM, bays, bayCc, postXs, baysInfo, start, end };
     });
 
     // ── Canvas dimensions ───────────────────────────────────────────────────
     const LEGEND_H   = 36;
-    const TOP_PAD    = 28;   // space above each run for length dimension
+    const TOP_PAD    = 28;
     const BOTTOM_PAD = 10;
-    const LEFT_PAD   = 52;   // space for height dimension label
+    const LEFT_PAD   = 52;
     const RIGHT_PAD  = 20;
-    const RUN_GAP    = 28;   // vertical gap between runs
+    const RUN_GAP    = 28;
 
-    // Aspect ratio: scale each run so height ≤ 180px, cap so wide runs don't get tiny
     const drawableW = cw - LEFT_PAD - RIGHT_PAD;
     const runSections = layouts.map(({ runMM, heightMM }) => {
       const scaleX  = drawableW / runMM;
       const maxRunH = 200;
       const scaleY  = maxRunH / heightMM;
-      const scale   = Math.min(scaleX, scaleY, 0.3); // never bigger than 0.3 px/mm
+      const scale   = Math.min(scaleX, scaleY, 0.3);
       return { drawW: runMM * scale, drawH: heightMM * scale, scale };
     });
 
@@ -89,8 +137,6 @@ export default function ElevationPreview({ runs }) {
     const ch = LEGEND_H + totalRunsH + BOTTOM_PAD;
 
     let svg = `<svg width="${cw}" height="${ch}" xmlns="http://www.w3.org/2000/svg" style="background:#f8fafc; font-family:Inter,system-ui,sans-serif;">`;
-
-    // Background rect
     svg += `<rect width="${cw}" height="${ch}" fill="#f8fafc"/>`;
 
     // Subtle grid
@@ -101,59 +147,70 @@ export default function ElevationPreview({ runs }) {
 
     // ── Legend ───────────────────────────────────────────────────────────────
     const lx = 12, ly = 18;
-    // Post
     svg += `<rect x="${lx}" y="${ly - 6}" width="8" height="12" fill="#1e293b" rx="1"/>`;
     svg += `<text x="${lx + 12}" y="${ly + 4}" fill="#475569" font-size="10">Post</text>`;
-    // Slat
-    svg += `<rect x="${lx + 60}" y="${ly - 4}" width="16" height="8" fill="#3b82f6" opacity="0.7" rx="1"/>`;
-    svg += `<text x="${lx + 82}" y="${ly + 4}" fill="#475569" font-size="10">Slat</text>`;
-    // Bottom rail
+
+    const memberColour = isPicket ? '#92400e' : '#3b82f6';
+    const memberLabel  = isPicket ? 'Picket' : 'Slat';
+    svg += `<rect x="${lx + 56}" y="${ly - 6}" width="${isPicket ? 4 : 8}" height="12" fill="${memberColour}" opacity="0.8" rx="0.5"/>`;
+    svg += `<text x="${lx + 70}" y="${ly + 4}" fill="#475569" font-size="10">${memberLabel}</text>`;
+
     svg += `<line x1="${lx + 120}" y1="${ly}" x2="${lx + 136}" y2="${ly}" stroke="#78716c" stroke-width="5" stroke-linecap="round"/>`;
     svg += `<text x="${lx + 142}" y="${ly + 4}" fill="#475569" font-size="10">Bottom Rail</text>`;
-    // Handrail
+
     svg += `<line x1="${lx + 220}" y1="${ly}" x2="${lx + 236}" y2="${ly}" stroke="#1e3a5f" stroke-width="4" stroke-linecap="round"/>`;
     svg += `<text x="${lx + 242}" y="${ly + 4}" fill="#475569" font-size="10">Handrail</text>`;
 
     // ── Draw each run ────────────────────────────────────────────────────────
     let yOffset = LEGEND_H;
 
-    layouts.forEach(({ run, runMM, heightMM, bgMM, bays, bayCc, slatRows, postXs, start, end }, i) => {
+    layouts.forEach(({ run, runMM, heightMM, bgMM, bays, bayCc, postXs, baysInfo, start, end }, i) => {
       const { drawW, drawH, scale } = runSections[i];
 
-      // Centre run horizontally
       const xOff = LEFT_PAD + (drawableW - drawW) / 2;
-      const yTop  = yOffset + TOP_PAD;  // top-left corner of run box
+      const yTop  = yOffset + TOP_PAD;
 
-      // Coordinate transforms: x left→right, y bottom→top (flip for SVG)
       const tx = (xMM) => xOff + xMM * scale;
       const ty = (yMM) => yTop + (heightMM - yMM) * scale;
 
       // ── Run background ────────────────────────────────────────────────────
       svg += `<rect x="${tx(0)}" y="${ty(heightMM)}" width="${drawW}" height="${drawH}" fill="white" stroke="#e2e8f0" stroke-width="1" rx="2"/>`;
 
-      // ── Bottom gap zone (subtle fill) ─────────────────────────────────────
+      // ── Bottom gap zone ───────────────────────────────────────────────────
       if (bgMM > 0) {
         svg += `<rect x="${tx(0)}" y="${ty(bgMM)}" width="${drawW}" height="${bgMM * scale}" fill="#fafafa" stroke="none"/>`;
-        // Bottom gap annotation
         svg += `<text x="${tx(runMM) + 4}" y="${ty(bgMM / 2)}" fill="#9ca3af" font-size="9" dominant-baseline="middle">${bgMM}mm</text>`;
       }
 
-      // ── Slat rows ─────────────────────────────────────────────────────────
-      for (let s = 0; s < slatRows; s++) {
-        const slatBottomMM = bgMM + s * SLAT_PITCH_MM;
-        const slatTopMM    = slatBottomMM + SLAT_FACE_MM;
-        const slatH        = SLAT_FACE_MM * scale;
-        svg += `<rect x="${tx(0)}" y="${ty(slatTopMM)}" width="${drawW}" height="${Math.max(1.5, slatH)}" fill="#3b82f6" opacity="0.65" rx="0.5"/>`;
+      // ── Vertical infill members ───────────────────────────────────────────
+      const memberTop    = heightMM - HANDRAIL_OFFSET - 10;   // just below handrail
+      const memberBottom = bgMM + BOTTOM_RAIL_H + 2;          // just above bottom rail
+
+      baysInfo.forEach(({ memberPositions }) => {
+        memberPositions.forEach(({ xMM, wMM }) => {
+          const pxW = Math.max(1.5, wMM * scale);
+          const pxX = tx(xMM) - pxW / 2;
+          const pxTop    = ty(memberTop);
+          const pxBottom = ty(memberBottom);
+          const pxH = Math.abs(pxBottom - pxTop);
+          svg += `<rect x="${pxX}" y="${pxTop}" width="${pxW}" height="${Math.max(2, pxH)}" fill="${memberColour}" opacity="0.75" rx="0.5"/>`;
+        });
+      });
+
+      // ── Bottom rail ───────────────────────────────────────────────────────
+      const railH = Math.max(2.5, BOTTOM_RAIL_H * scale);
+      svg += `<rect x="${tx(0)}" y="${ty(bgMM + BOTTOM_RAIL_H)}" width="${drawW}" height="${railH}" fill="#78716c" rx="0.5"/>`;
+
+      // ── 3-Rail mid-rail ───────────────────────────────────────────────────
+      if (fenceStyle === '3-Rail') {
+        const midRailMM = bgMM + BOTTOM_RAIL_H + (heightMM - bgMM - BOTTOM_RAIL_H) * 0.45;
+        svg += `<rect x="${tx(0)}" y="${ty(midRailMM + 8)}" width="${drawW}" height="${Math.max(2.5, 16 * scale)}" fill="#78716c" opacity="0.7" rx="0.5"/>`;
       }
 
-      // ── Bottom rail (at y ≈ 0 to 16mm, heavier bar) ──────────────────────
-      const railH = Math.max(2.5, 16 * scale);
-      svg += `<rect x="${tx(0)}" y="${ty(16)}" width="${drawW}" height="${railH}" fill="#78716c" rx="0.5"/>`;
+      // ── Handrail ──────────────────────────────────────────────────────────
+      svg += `<line x1="${tx(0)}" y1="${ty(heightMM - HANDRAIL_OFFSET)}" x2="${tx(runMM)}" y2="${ty(heightMM - HANDRAIL_OFFSET)}" stroke="#1e3a5f" stroke-width="3.5" stroke-linecap="round"/>`;
 
-      // ── Handrail (at y = heightMM - 30 to heightMM) ──────────────────────
-      svg += `<line x1="${tx(0)}" y1="${ty(heightMM - 15)}" x2="${tx(runMM)}" y2="${ty(heightMM - 15)}" stroke="#1e3a5f" stroke-width="3.5" stroke-linecap="round"/>`;
-
-      // ── Posts ─────────────────────────────────────────────────────────────
+      // ── Posts (drawn on top of members) ───────────────────────────────────
       const postPxW = Math.max(3, POST_WIDTH_MM * scale);
       postXs.forEach((pxMM) => {
         svg += `<rect x="${tx(pxMM) - postPxW / 2}" y="${ty(heightMM)}" width="${postPxW}" height="${drawH}" fill="#1e293b" stroke="#475569" stroke-width="0.5" rx="1"/>`;
@@ -191,20 +248,19 @@ export default function ElevationPreview({ runs }) {
       const dimMidY = (ty(0) + ty(heightMM)) / 2;
       svg += `<text x="${dimLeftX - 6}" y="${dimMidY}" fill="#475569" font-size="10" font-weight="500" text-anchor="middle" dominant-baseline="middle" transform="rotate(-90,${dimLeftX - 6},${dimMidY})">${heightMM}mm H</text>`;
 
-      // ── Bay width annotations (between middle posts) ──────────────────────
+      // ── Bay width annotations ─────────────────────────────────────────────
       if (bays > 1 && drawW > 80) {
         for (let b = 0; b < bays; b++) {
-          const bayStartMM = b * bayCc;
-          const bayEndMM   = (b + 1) * bayCc;
-          const bayMidX    = tx(bayStartMM + bayCc / 2);
-          const bayLabelY  = ty(heightMM) + drawH / 2;
+          const bayMidX  = tx(b * bayCc + bayCc / 2);
+          const bayLabelY = ty(heightMM) + drawH / 2;
           svg += `<text x="${bayMidX}" y="${bayLabelY}" fill="#94a3b8" font-size="9" text-anchor="middle" dominant-baseline="middle">${Math.round(bayCc)}mm</text>`;
         }
       }
 
-      // ── Slat count annotation (right side) ───────────────────────────────
-      if (drawH > 60) {
-        svg += `<text x="${tx(runMM) + 5}" y="${ty(heightMM) + drawH / 2}" fill="#94a3b8" font-size="9" dominant-baseline="middle">${slatRows} slats</text>`;
+      // ── Member count annotation ───────────────────────────────────────────
+      if (drawH > 60 && baysInfo.length > 0) {
+        const firstBayCount = baysInfo[0].memberPositions.length;
+        svg += `<text x="${tx(runMM) + 5}" y="${ty(heightMM) + drawH / 2}" fill="#94a3b8" font-size="9" dominant-baseline="middle">${firstBayCount} ${memberLabel.toLowerCase()}s</text>`;
       }
 
       yOffset = yTop + drawH + RUN_GAP;
@@ -212,7 +268,7 @@ export default function ElevationPreview({ runs }) {
 
     svg += `</svg>`;
     containerRef.current.innerHTML = svg;
-  }, [runs]);
+  }, [runs, infillType, fenceStyle]);
 
   useEffect(() => { draw(); }, [draw]);
   useEffect(() => {
