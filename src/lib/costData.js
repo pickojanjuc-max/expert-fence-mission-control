@@ -332,6 +332,132 @@ const RAW_COSTS = [
   { sku: 'RIO-SDC-MW', cost: 6.33, sell: 8.86, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/RIO-SDC-MW.JPG' },
   { sku: 'RIO-SDC-P', cost: 3.47, sell: 4.86, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/RIO-SDC-P.JPG' },
   { sku: 'RIO-SDC-S', cost: 3.47, sell: 4.86, img: 'https://glassoutletonline.com.au/pictures/resized/250x250/RIO-SDC-S.JPG' },
+
+  // ── AIRE+ Horizontal Slat Balustrade ─────────────────────────────────────
+  // Pricing from cost_price_master.csv in ef-air-materials-calculator-plugin-v1.0.4
+  // All colour variants carry the same cost (just different powder coat).
+  // Oval handrail (OHR) not in CSV — priced at 0 until confirmed with supplier.
+
+  // Posts — Base Plate 1050mm H (AR-1050-FPBP: cost $33.18)
+  { sku: 'AR-1050-FPBP-B',  cost: 33.18, sell: 0, img: '' },
+  { sku: 'AR-1050-FPBP-MN', cost: 33.18, sell: 0, img: '' },
+  { sku: 'AR-1050-FPBP-W',  cost: 33.18, sell: 0, img: '' },
+  { sku: 'AR-1050-FPBP-M',  cost: 33.18, sell: 0, img: '' },
+
+  // Posts — Full Post 5800mm for Core Drill (not in CSV — cost TBC)
+  { sku: 'AR-5800-FP-B',  cost: 0, sell: 0, img: '' },
+  { sku: 'AR-5800-FP-MN', cost: 0, sell: 0, img: '' },
+  { sku: 'AR-5800-FP-W',  cost: 0, sell: 0, img: '' },
+  { sku: 'AR-5800-FP-M',  cost: 0, sell: 0, img: '' },
+
+  // Post covers — Domical 2-part (XP-DC-2P: cost $5.11)
+  { sku: 'XP-DC-2P-B',  cost: 5.11, sell: 0, img: '' },
+  { sku: 'XP-DC-2P-MN', cost: 5.11, sell: 0, img: '' },
+  { sku: 'XP-DC-2P-W',  cost: 5.11, sell: 0, img: '' },
+  { sku: 'XP-DC-2P-M',  cost: 5.11, sell: 0, img: '' },
+
+  // Post covers — Dress Ring (not in CSV — cost TBC)
+  { sku: 'XP-DR-B',  cost: 0, sell: 0, img: '' },
+  { sku: 'XP-DR-MN', cost: 0, sell: 0, img: '' },
+  { sku: 'XP-DR-W',  cost: 0, sell: 0, img: '' },
+  { sku: 'XP-DR-M',  cost: 0, sell: 0, img: '' },
+
+  // Bottom Rail 5800mm (AR-BOTTOM-RAIL / AR-5800-BR: cost $105.05)
+  { sku: 'AR-5800-BR-B',  cost: 105.05, sell: 0, img: '' },
+  { sku: 'AR-5800-BR-MN', cost: 105.05, sell: 0, img: '' },
+  { sku: 'AR-5800-BR-W',  cost: 105.05, sell: 0, img: '' },
+  { sku: 'AR-5800-BR-M',  cost: 105.05, sell: 0, img: '' },
+
+  // Bottom Rail Insert 3022mm for 65mm slats (AR-3022-INS-65: cost $23.87)
+  { sku: 'AR-3022-INS-65-B',  cost: 23.87, sell: 0, img: '' },
+  { sku: 'AR-3022-INS-65-MN', cost: 23.87, sell: 0, img: '' },
+  { sku: 'AR-3022-INS-65-W',  cost: 23.87, sell: 0, img: '' },
+  { sku: 'AR-3022-INS-65-M',  cost: 23.87, sell: 0, img: '' },
+
+  // Slats 65×16.5mm, 6100mm stock (XP-6100-S65: cost $37.29)
+  { sku: 'XP-6100-S65-B',  cost: 37.29, sell: 0, img: '' },
+  { sku: 'XP-6100-S65-MN', cost: 37.29, sell: 0, img: '' },
+  { sku: 'XP-6100-S65-W',  cost: 37.29, sell: 0, img: '' },
+  { sku: 'XP-6100-S65-M',  cost: 37.29, sell: 0, img: '' },
+
+  // Handrail — Oval 5800mm (not in CSV — cost TBC)
+  { sku: 'A50-5800-OHR-B',  cost: 0, sell: 0, img: '' },
+  { sku: 'A50-5800-OHR-MN', cost: 0, sell: 0, img: '' },
+  { sku: 'A50-5800-OHR-W',  cost: 0, sell: 0, img: '' },
+  { sku: 'A50-5800-OHR-M',  cost: 0, sell: 0, img: '' },
+
+  // Handrail — Rectangular 5800mm (A50-5800-RHR: cost $97.72)
+  { sku: 'A50-5800-RHR-B',  cost: 97.72, sell: 0, img: '' },
+  { sku: 'A50-5800-RHR-MN', cost: 97.72, sell: 0, img: '' },
+  { sku: 'A50-5800-RHR-W',  cost: 97.72, sell: 0, img: '' },
+  { sku: 'A50-5800-RHR-M',  cost: 97.72, sell: 0, img: '' },
+
+  // Offset Brackets — Oval Handrail (2pk) — not in CSV, cost TBC
+  { sku: 'A50-BRACKET-O-B-2PK',  cost: 0, sell: 0, img: '' },
+  { sku: 'A50-BRACKET-O-MN-2PK', cost: 0, sell: 0, img: '' },
+  { sku: 'A50-BRACKET-O-W-2PK',  cost: 0, sell: 0, img: '' },
+  { sku: 'A50-BRACKET-O-M-2PK',  cost: 0, sell: 0, img: '' },
+
+  // Offset Brackets — Rectangular Handrail (2pk) (A50-BRACKET-R-2PK: cost $5.15)
+  { sku: 'A50-BRACKET-R-B-2PK',  cost: 5.15, sell: 0, img: '' },
+  { sku: 'A50-BRACKET-R-MN-2PK', cost: 5.15, sell: 0, img: '' },
+  { sku: 'A50-BRACKET-R-W-2PK',  cost: 5.15, sell: 0, img: '' },
+  { sku: 'A50-BRACKET-R-M-2PK',  cost: 5.15, sell: 0, img: '' },
+
+  // End Caps — Oval Handrail (not in CSV, cost TBC)
+  { sku: 'A50-ECA-O-B',  cost: 0, sell: 0, img: '' },
+  { sku: 'A50-ECA-O-MN', cost: 0, sell: 0, img: '' },
+  { sku: 'A50-ECA-O-W',  cost: 0, sell: 0, img: '' },
+  { sku: 'A50-ECA-O-M',  cost: 0, sell: 0, img: '' },
+
+  // End Caps — Rectangular Handrail (A50-ECA-R: cost $2.03)
+  { sku: 'A50-ECA-R-B',  cost: 2.03, sell: 0, img: '' },
+  { sku: 'A50-ECA-R-MN', cost: 2.03, sell: 0, img: '' },
+  { sku: 'A50-ECA-R-W',  cost: 2.03, sell: 0, img: '' },
+  { sku: 'A50-ECA-R-M',  cost: 2.03, sell: 0, img: '' },
+
+  // Top Spacers 65mm, pack of 20 (AR-SPACER-65MM: cost $5.93)
+  { sku: 'AR-SPACER-65MM-B',  cost: 5.93, sell: 0, img: '' },
+  { sku: 'AR-SPACER-65MM-MN', cost: 5.93, sell: 0, img: '' },
+  { sku: 'AR-SPACER-65MM-W',  cost: 5.93, sell: 0, img: '' },
+  { sku: 'AR-SPACER-65MM-M',  cost: 5.93, sell: 0, img: '' },
+
+  // Mounting Plates for Bottom Rail, pack of 2 (AR-PLATE-2PK: cost $4.11)
+  { sku: 'AR-PLATE-B-2PK',  cost: 4.11, sell: 0, img: '' },
+  { sku: 'AR-PLATE-MN-2PK', cost: 4.11, sell: 0, img: '' },
+  { sku: 'AR-PLATE-W-2PK',  cost: 4.11, sell: 0, img: '' },
+  { sku: 'AR-PLATE-M-2PK',  cost: 4.11, sell: 0, img: '' },
+
+  // 3-Rail Infill 1400mm (not in CSV — cost TBC)
+  { sku: 'A50-1400-INF-B',  cost: 0, sell: 0, img: '' },
+  { sku: 'A50-1400-INF-MN', cost: 0, sell: 0, img: '' },
+  { sku: 'A50-1400-INF-W',  cost: 0, sell: 0, img: '' },
+  { sku: 'A50-1400-INF-M',  cost: 0, sell: 0, img: '' },
+
+  // Bottom rail screws, 50pk (AR-SCR-BR-50PK: cost $3.85) — colour variants share same price
+  { sku: 'AR-SCR-BR-50PK',    cost: 3.85, sell: 0, img: '' },
+  { sku: 'AR-SCR-BR-50PK-B',  cost: 3.85, sell: 0, img: '' },
+  { sku: 'AR-SCR-BR-50PK-MN', cost: 3.85, sell: 0, img: '' },
+  { sku: 'AR-SCR-BR-50PK-W',  cost: 3.85, sell: 0, img: '' },
+  { sku: 'AR-SCR-BR-50PK-M',  cost: 3.85, sell: 0, img: '' },
+
+  // Tek screws SS304 50pk (SS-TS-50-SS304: cost $4.68)
+  { sku: 'SS-TS-50-SS304', cost: 4.68, sell: 0, img: '' },
+
+  // CSK screws 12g×50, 50pk (CSK-12GX50-50PK: cost $5.62)
+  { sku: 'CSK-12GX50-50PK', cost: 5.62, sell: 0, img: '' },
+
+  // XP Screws (not in CSV — cost TBC)
+  { sku: 'XP-SCREWS-B',  cost: 0, sell: 0, img: '' },
+  { sku: 'XP-SCREWS-MN', cost: 0, sell: 0, img: '' },
+  { sku: 'XP-SCREWS-W',  cost: 0, sell: 0, img: '' },
+  { sku: 'XP-SCREWS-M',  cost: 0, sell: 0, img: '' },
+
+  // Wall plate (A50-WP — not in CSV)
+  { sku: 'A50-WP-B',  cost: 0, sell: 0, img: '' },
+  { sku: 'A50-WP-MN', cost: 0, sell: 0, img: '' },
+  { sku: 'A50-WP-W',  cost: 0, sell: 0, img: '' },
+  { sku: 'A50-WP-M',  cost: 0, sell: 0, img: '' },
 ];
 
 /**
