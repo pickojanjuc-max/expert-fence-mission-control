@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { buildAireBOM, defaultAireRun, AIRE_DEFAULTS } from '@/lib/aireBuilder';
+import { buildAireBOM, defaultAireRun, AIRE_DEFAULTS, SHAPE_CORNERS, SHAPE_RUN_COUNT } from '@/lib/aireBuilder';
 import { COST_MAP } from '@/lib/costData';
 import SaveProjectModal from '@/components/SaveProjectModal';
 import ElevationPreview from '@/components/aire/ElevationPreview';
@@ -96,8 +96,9 @@ export default function AireCalculator() {
   const [mountType,    setMountType]    = useState(AIRE_DEFAULTS.mountType);
   const [infillType,   setInfillType]   = useState(AIRE_DEFAULTS.infillType);
   const [fenceStyle,   setFenceStyle]   = useState(AIRE_DEFAULTS.fenceStyle);
+  const [shape,        setShape]        = useState(AIRE_DEFAULTS.shape);
 
-  // Runs (up to 6)
+  // Runs (up to 6 for Straight, fixed count for L/U shapes)
   const [runs, setRuns] = useState(() => [defaultAireRun(0)]);
 
   const [activeRun, setActiveRun] = useState(0);
@@ -144,6 +145,7 @@ export default function AireCalculator() {
       if (s.mountType)    setMountType(s.mountType);
       if (s.infillType)   setInfillType(s.infillType);
       if (s.fenceStyle)   setFenceStyle(s.fenceStyle);
+      if (s.shape)        setShape(s.shape);
       if (s.runs)         setRuns(s.runs);
       if (s.activeRun !== undefined) setActiveRun(s.activeRun);
       if (s.projectId)    setProjectId(s.projectId);
@@ -155,8 +157,8 @@ export default function AireCalculator() {
 
   useEffect(() => {
     if (!hydrated) return;
-    persistState({ colour, handrailType, mountType, infillType, fenceStyle, runs, activeRun, projectId, projectName, calculationId });
-  }, [colour, handrailType, mountType, infillType, fenceStyle, runs, activeRun, projectId, projectName, calculationId, hydrated]);
+    persistState({ colour, handrailType, mountType, infillType, fenceStyle, shape, runs, activeRun, projectId, projectName, calculationId });
+  }, [colour, handrailType, mountType, infillType, fenceStyle, shape, runs, activeRun, projectId, projectName, calculationId, hydrated]);
 
   // ── Load from URL param ────────────────────────────────────────────────────
   useEffect(() => {
@@ -174,6 +176,7 @@ export default function AireCalculator() {
         if (s.mountType)    setMountType(s.mountType);
         if (s.infillType)   setInfillType(s.infillType);
         if (s.fenceStyle)   setFenceStyle(s.fenceStyle);
+        if (s.shape)        setShape(s.shape);
         if (s.runs)         setRuns(s.runs);
         if (s.activeRun !== undefined) setActiveRun(s.activeRun);
         setProjectId(data.project.id);
@@ -184,15 +187,44 @@ export default function AireCalculator() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ── Shape management ──────────────────────────────────────────────────────
+  function handleShapeChange(newShape) {
+    setShape(newShape);
+    const fixedCount = SHAPE_RUN_COUNT[newShape];
+    if (fixedCount !== null && fixedCount !== undefined) {
+      // Build exactly the right number of runs, preserving existing lengths
+      setRuns((prev) => {
+        const next = [];
+        for (let i = 0; i < fixedCount; i++) {
+          next.push(prev[i] ? { ...prev[i] } : defaultAireRun(i));
+        }
+        return next;
+      });
+      setActiveRun(0);
+    }
+    // Straight — keep current runs as-is (user manages count)
+  }
+
+  // Shared corners auto-derived from shape
+  const sharedCorners = SHAPE_CORNERS[shape] ?? 0;
+
+  // Whether user can add/remove runs (only for Straight)
+  const isFixedRunCount = SHAPE_RUN_COUNT[shape] !== null && SHAPE_RUN_COUNT[shape] !== undefined;
+
+  // Label: "Side A/B/C" for shaped, "Run A/B/C" for straight
+  function runLabel(i) {
+    return isFixedRunCount ? `Side ${['A','B','C','D','E','F'][i]}` : `Run ${['A','B','C','D','E','F'][i] || i+1}`;
+  }
+
   // ── Run management ─────────────────────────────────────────────────────────
   function addRun() {
-    if (runs.length >= MAX_RUNS) return;
+    if (isFixedRunCount || runs.length >= MAX_RUNS) return;
     setRuns((prev) => [...prev, defaultAireRun(prev.length)]);
     setActiveRun(runs.length);
   }
 
   function removeRun(i) {
-    if (runs.length <= 1) return;
+    if (isFixedRunCount || runs.length <= 1) return;
     setRuns((prev) => prev.filter((_, idx) => idx !== i));
     setActiveRun(Math.max(0, Math.min(activeRun, runs.length - 2)));
   }
@@ -202,7 +234,7 @@ export default function AireCalculator() {
   }
 
   // ── BOM calculation ────────────────────────────────────────────────────────
-  const opts = { colour, handrailType, mountType, infillType, fenceStyle, sharedCorners: 0 };
+  const opts = { colour, handrailType, mountType, infillType, fenceStyle, sharedCorners };
   const activeRuns = runs.map((r) => ({ ...r, active: r.active !== false }));
   const { consolidated, validation } = buildAireBOM(activeRuns, opts);
 
@@ -271,6 +303,46 @@ export default function AireCalculator() {
             System Options
           </div>
 
+          {/* Shape selector */}
+          <div style={{ marginBottom: 14 }}>
+            <label style={labelStyle}>Shape</label>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {[
+                { value: 'Straight', icon: '—',  desc: 'Straight' },
+                { value: 'L-shape',  icon: '⌐',  desc: 'L-shape'  },
+                { value: 'U-shape',  icon: '⊓',  desc: 'U-shape'  },
+              ].map(({ value, icon, desc }) => (
+                <button
+                  key={value}
+                  onClick={() => handleShapeChange(value)}
+                  style={{
+                    flex: 1,
+                    padding: '8px 4px',
+                    borderRadius: 7,
+                    border: `2px solid ${shape === value ? '#2563eb' : '#e5e7eb'}`,
+                    background: shape === value ? '#eff6ff' : 'white',
+                    color: shape === value ? '#1d4ed8' : '#6b7280',
+                    fontSize: 11,
+                    fontWeight: shape === value ? 700 : 500,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 3,
+                  }}
+                >
+                  <span style={{ fontSize: 16, lineHeight: 1 }}>{icon}</span>
+                  <span>{desc}</span>
+                </button>
+              ))}
+            </div>
+            {shape !== 'Straight' && (
+              <div style={{ fontSize: 11, color: '#6b7280', marginTop: 6, background: '#f0f9ff', borderRadius: 5, padding: '5px 8px' }}>
+                {shape === 'L-shape' ? '2 sides · 1 shared corner post' : '3 sides · 2 shared corner posts'}
+              </div>
+            )}
+          </div>
+
           <div style={{ marginBottom: 12 }}>
             <label style={labelStyle}>Infill Type</label>
             <select style={selectStyle} value={infillType} onChange={(e) => setInfillType(e.target.value)}>
@@ -327,10 +399,10 @@ export default function AireCalculator() {
                   cursor: 'pointer',
                 }}
               >
-                Run {r.label}
+                {runLabel(i)}
               </button>
             ))}
-            {runs.length < MAX_RUNS && (
+            {!isFixedRunCount && runs.length < MAX_RUNS && (
               <button
                 onClick={addRun}
                 style={{
@@ -428,7 +500,7 @@ export default function AireCalculator() {
                 );
               })()}
 
-              {runs.length > 1 && (
+              {!isFixedRunCount && runs.length > 1 && (
                 <button
                   onClick={() => removeRun(activeRun)}
                   style={{ marginTop: 10, fontSize: 11, color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
@@ -638,7 +710,7 @@ export default function AireCalculator() {
                     minWidth: 120,
                   }}
                 >
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#1d4ed8', marginBottom: 3 }}>Run {r.label}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#1d4ed8', marginBottom: 3 }}>{runLabel(i)}</div>
                   <div style={{ fontSize: 11, color: '#6b7280' }}>{(r.length / 1000).toFixed(2)}m · {r.height}mm H</div>
                   <div style={{ fontSize: 11, color: '#9ca3af' }}>{posts} posts · ~{mbCount} {infillType.toLowerCase()}s/bay</div>
                 </div>
@@ -654,7 +726,7 @@ export default function AireCalculator() {
         onClose={() => setShowSaveModal(false)}
         onSaved={handleProjectSaved}
         calculatorType="aire"
-        calculatorState={{ colour, handrailType, mountType, infillType, fenceStyle, runs, activeRun }}
+        calculatorState={{ colour, handrailType, mountType, infillType, fenceStyle, shape, runs, activeRun }}
         bomSnapshot={getCurrentBom()}
         currentProjectId={projectId}
         currentProjectName={projectName}

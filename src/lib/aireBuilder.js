@@ -388,7 +388,7 @@ export function defaultAireRun(index = 0) {
   const labels = ['A', 'B', 'C', 'D', 'E', 'F'];
   return {
     label:       labels[index] || String(index + 1),
-    active:      index === 0,
+    active:      true,   // always active — filter happens in CalculatorPage if needed
     length:      4200,
     height:      1080,
     bottomGap:   65,
@@ -404,5 +404,20 @@ export const AIRE_DEFAULTS = {
   mountType:    'BasePlate',   // 'BasePlate' | 'FaceMount'
   infillType:   'Slat',        // 'Slat' | 'Picket'
   fenceStyle:   'Full',        // 'Full' | '3-Rail'
+  shape:        'Straight',    // 'Straight' | 'L-shape' | 'U-shape'
   sharedCorners: 0,
+};
+
+/** Shared corners implied by each shape preset */
+export const SHAPE_CORNERS = {
+  Straight: 0,
+  'L-shape': 1,
+  'U-shape': 2,
+};
+
+/** Fixed run count for shaped configs; Straight = unlimited */
+export const SHAPE_RUN_COUNT = {
+  Straight: null,   // user-controlled
+  'L-shape': 2,
+  'U-shape': 3,
 };
