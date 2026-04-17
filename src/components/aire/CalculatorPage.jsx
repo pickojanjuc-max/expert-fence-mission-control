@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { buildAireBOM, defaultAireRun, AIRE_DEFAULTS } from '@/lib/aireBuilder';
 import { COST_MAP } from '@/lib/costData';
 import SaveProjectModal from '@/components/SaveProjectModal';
+import ElevationPreview from '@/components/aire/ElevationPreview';
 
 // ── Session persistence ───────────────────────────────────────────────────────
 const STORAGE_KEY = 'ef_aire_calc_state';
@@ -97,6 +98,7 @@ export default function AireCalculator() {
   });
 
   const [activeRun, setActiveRun] = useState(0);
+  const [rightTab, setRightTab]   = useState('preview');
 
   // SKU → image URL (loaded from supplier CSV)
   const [skuToImage, setSkuToImage] = useState({});
@@ -443,7 +445,7 @@ export default function AireCalculator() {
         )}
       </div>
 
-      {/* ── RIGHT PANEL — BOM ── */}
+      {/* ── RIGHT PANEL — Preview + BOM ── */}
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
 
         {/* Validation warnings */}
@@ -454,6 +456,41 @@ export default function AireCalculator() {
             ))}
           </div>
         )}
+
+        {/* Tab switcher */}
+        <div style={{ display: 'flex', gap: 4, background: '#f1f5f9', borderRadius: 8, padding: 4 }}>
+          {[{ id: 'preview', label: '📐 Layout Preview' }, { id: 'bom', label: '📋 Bill of Materials' }].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setRightTab(tab.id)}
+              style={{
+                flex: 1,
+                padding: '8px 12px',
+                borderRadius: 6,
+                border: 'none',
+                background: rightTab === tab.id ? 'white' : 'transparent',
+                boxShadow: rightTab === tab.id ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                color: rightTab === tab.id ? '#111827' : '#6b7280',
+                fontWeight: rightTab === tab.id ? 700 : 500,
+                fontSize: 13,
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Layout Preview tab */}
+        {rightTab === 'preview' && (
+          <div style={{ background: 'white', borderRadius: 10, border: '1px solid #e5e7eb', overflow: 'hidden', padding: 12 }}>
+            <ElevationPreview runs={runs} />
+          </div>
+        )}
+
+        {/* BOM tab */}
+        {rightTab === 'bom' && <>
 
         {/* BOM header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -552,7 +589,10 @@ export default function AireCalculator() {
         )}
 
 
-        {/* Run summary */}
+        {/* close BOM tab conditional */}
+        </>}
+
+        {/* Run summary — always visible */}
         <div style={{ background: 'white', borderRadius: 10, border: '1px solid #e5e7eb', padding: '14px 16px' }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             Run Summary
