@@ -8,6 +8,7 @@ import {
   SHAPE_OPTIONS,
   GLASS_DEFAULTS,
 } from '@/lib/customGlassBuilder';
+import SaveProjectModal from '@/components/SaveProjectModal';
 
 const SESSION_KEY = 'ef_custom_glass_state';
 
@@ -33,8 +34,13 @@ export default function CustomGlassCalculatorPage() {
   const [jobType,  setJobType]  = useState(GLASS_DEFAULTS.jobType);
   const [panels,   setPanels]   = useState([defaultGlassPanel(0)]);
   const [activeIdx, setActiveIdx] = useState(0);
-  const [saveStatus, setSaveStatus] = useState('');
-  const [projectName, setProjectName] = useState('');
+
+  // Project save — standard pattern (matches glass, aluminium, balustrade)
+  const [projectId,       setProjectId]       = useState(null);
+  const [projectName,     setProjectName]     = useState('');
+  const [calculationId,   setCalculationId]   = useState(null);
+  const [showSaveModal,   setShowSaveModal]   = useState(false);
+  const [saveMsg,         setSaveMsg]         = useState('');
 
   // Load from session
   useEffect(() => {
@@ -42,9 +48,11 @@ export default function CustomGlassCalculatorPage() {
       const raw = sessionStorage.getItem(SESSION_KEY);
       if (raw) {
         const s = JSON.parse(raw);
-        if (s.jobType)  setJobType(s.jobType);
-        if (s.panels?.length) { setPanels(s.panels); setActiveIdx(0); }
-        if (s.projectName) setProjectName(s.projectName);
+        if (s.jobType)            setJobType(s.jobType);
+        if (s.panels?.length)     { setPanels(s.panels); setActiveIdx(0); }
+        if (s.projectId)          setProjectId(s.projectId);
+        if (s.projectName)        setProjectName(s.projectName);
+        if (s.calculationId)      setCalculationId(s.calculationId);
       }
     } catch {}
   }, []);
@@ -52,9 +60,18 @@ export default function CustomGlassCalculatorPage() {
   // Persist to session
   useEffect(() => {
     try {
-      sessionStorage.setItem(SESSION_KEY, JSON.stringify({ jobType, panels, projectName }));
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify({ jobType, panels, projectId, projectName, calculationId }));
     } catch {}
-  }, [jobType, panels, projectName]);
+  }, [jobType, panels, projectId, projectName, calculationId]);
+
+  // ── Save callback ────────────────────────────────────────────────────────────
+  function handleProjectSaved({ projectId: pid, projectName: pname, calculationId: cid }) {
+    setProjectId(pid);
+    setProjectName(pname);
+    setCalculationId(cid);
+    setSaveMsg('Saved');
+    setTimeout(() => setSaveMsg(''), 2000);
+  }
 
   // ── Panel helpers ──────────────────────────────────────────────────────────
   const addPanel = useCallback(() => {
@@ -78,27 +95,6 @@ export default function CustomGlassCalculatorPage() {
   const bom = buildGlassBOM({ panels, jobType });
   const { totals, panels: panelResults, validation } = bom;
 
-  // ── Save to project ────────────────────────────────────────────────────────
-  const handleSave = useCallback(async () => {
-    setSaveStatus('saving');
-    try {
-      const res = await fetch('/api/projects', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name:      projectName || `Custom Glass — ${new Date().toLocaleDateString('en-AU')}`,
-          calc_type: 'custom-glass',
-          data:      { jobType, panels, totals },
-        }),
-      });
-      if (!res.ok) throw new Error('Save failed');
-      setSaveStatus('saved');
-      setTimeout(() => setSaveStatus(''), 2000);
-    } catch {
-      setSaveStatus('error');
-      setTimeout(() => setSaveStatus(''), 3000);
-    }
-  }, [jobType, panels, totals, projectName]);
 
   // ── Styles ─────────────────────────────────────────────────────────────────
   const activePanel = panels[activeIdx] || panels[0];
@@ -134,34 +130,25 @@ export default function CustomGlassCalculatorPage() {
         .cg-always-on { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #059669; background: #ecfdf5; border-radius: 4px; padding: 3px 7px; }
         .cg-tag { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 10px; }
         .cg-warn { display: flex; gap: 8px; align-items: flex-start; background: #fffbeb; border: 1px solid #fcd34d; border-radius: 6px; padding: 10px 12px; font-size: 13px; color: #92400e; }
-        .cg-save-btn { padding: 9px 20px; border-radius: 6px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
       `}</style>
 
       {/* Top nav */}
       <header style={{ background: C.white, borderBottom: `1px solid ${C.border}`, padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 12, position: 'sticky', top: 0, zIndex: 10 }}>
-        <a href="/dashboard" style={{ fontSize: 13, color: '#2563eb', textDecoration: 'none', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 4 }}>
+        <a href="/dashboard" style={{ fontSize: 13, color: '#2563eb', textDecoration: 'none', fontWeight: 500 }}>
           ← Dashboard
         </a>
         <div style={{ width: 1, height: 16, background: C.border }} />
-        <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>Custom Glass Calculator</span>
-        <div style={{ flex: 1 }} />
-        <input
-          className="cg-input"
-          style={{ maxWidth: 200, fontSize: 13, padding: '5px 10px' }}
-          placeholder="Project name (optional)"
-          value={projectName}
-          onChange={e => setProjectName(e.target.value)}
-        />
+        <span style={{ fontSize: 13, fontWeight: 600, color: C.text, flex: 1 }}>
+          Custom Glass Calculator
+          {projectName && <span style={{ fontWeight: 400, color: C.muted, marginLeft: 8 }}>— {projectName}</span>}
+        </span>
         <button
-          className="cg-save-btn"
-          onClick={handleSave}
-          style={{
-            background: saveStatus === 'saved' ? '#059669' : saveStatus === 'error' ? C.danger : C.brand,
-            color: 'white',
-          }}
+          onClick={() => setShowSaveModal(true)}
+          style={{ padding: '6px 14px', fontSize: 12, fontWeight: 600, color: 'white', background: '#10b981', border: 'none', borderRadius: 6, cursor: 'pointer' }}
         >
-          {saveStatus === 'saving' ? 'Saving…' : saveStatus === 'saved' ? '✓ Saved' : saveStatus === 'error' ? 'Error' : 'Save'}
+          Save Project
         </button>
+        {saveMsg && <span style={{ fontSize: 12, color: '#059669', fontWeight: 600 }}>{saveMsg}</span>}
       </header>
 
       <div className="cg-layout">
@@ -507,6 +494,20 @@ export default function CustomGlassCalculatorPage() {
           </div>
         </div>
       </div>
+
+      {/* Save Project Modal — standard pattern shared across all calculators */}
+      <SaveProjectModal
+        show={showSaveModal}
+        onClose={() => setShowSaveModal(false)}
+        onSaved={handleProjectSaved}
+        calculatorType="custom-glass"
+        calculatorState={{ jobType, panels }}
+        bomSnapshot={totals}
+        currentProjectId={projectId}
+        currentProjectName={projectName}
+        currentCalculationId={calculationId}
+        label="Custom Glass"
+      />
     </div>
   );
 }
