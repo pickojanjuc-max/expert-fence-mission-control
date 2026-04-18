@@ -1,0 +1,99 @@
+<!--
+  Expert Fence — WooCommerce page snippet (v1)
+
+  HOW TO USE:
+  1. On expertfence.com.au, edit the page where you want the calculator.
+  2. Add a "Custom HTML" block (or switch to HTML view).
+  3. Paste everything below (including the <script> tags) into the block.
+  4. Replace APP_ORIGIN and TOKEN with your actual values if they're not
+     already filled in. On your own store, TOKEN is:
+         OmkHJGq58WbXq_v4vvTfG6DZYAu-t_Fv
+  5. Save/preview the page. You should see the calculator appear.
+  6. Fill it in, click "Add to Cart". Open the Cart page — items should be there.
+
+  WHAT THIS DOES:
+  - First <script> loads the calculator iframe from your Vercel app.
+  - The second <script> catches the 'ef:add-to-cart' event the iframe fires
+    and posts each item to WooCommerce's Store API. The Store API handles the
+    cart session, totals, and nonces natively — no login or API keys needed.
+-->
+
+<div id="ef-calculator"></div>
+
+<script
+  src="https://APP_ORIGIN/embed.js"
+  data-key="OmkHJGq58WbXq_v4vvTfG6DZYAu-t_Fv"
+  data-calc="aluminium">
+</script>
+
+<script>
+(function () {
+  // Store API base — same origin as the WooCommerce site this runs on.
+  var API_BASE = '/wp-json/wc/store/v1';
+  var nonce = null;
+
+  // Fetch the cart once to capture a nonce, then reuse it.
+  function ensureNonce() {
+    if (nonce) return Promise.resolve(nonce);
+    return fetch(API_BASE + '/cart', { credentials: 'include' })
+      .then(function (res) {
+        nonce = res.headers.get('Nonce') || res.headers.get('X-WC-Store-API-Nonce');
+        return nonce;
+      });
+  }
+
+  function addItem(item) {
+    return ensureNonce().then(function (n) {
+      return fetch(API_BASE + '/cart/add-item', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'Nonce': n || '',
+          'X-WC-Store-API-Nonce': n || '',
+        },
+        body: JSON.stringify({
+          id: Number(item.product_id),
+          quantity: Number(item.quantity) || 1,
+        }),
+      }).then(function (res) {
+        if (!res.ok) {
+          return res.json().then(function (err) {
+            throw new Error((err && err.message) || ('HTTP ' + res.status));
+          });
+        }
+        // Refresh nonce if the server rotated it.
+        var n2 = res.headers.get('Nonce') || res.headers.get('X-WC-Store-API-Nonce');
+        if (n2) nonce = n2;
+        return res.json();
+      });
+    });
+  }
+
+  window.addEventListener('ef:add-to-cart', function (event) {
+    var items = (event.detail && event.detail.items) || [];
+    if (!items.length) return;
+
+    // Add items sequentially so nonce rotation is respected.
+    var chain = Promise.resolve();
+    var failed = [];
+    items.forEach(function (item) {
+      chain = chain.then(function () {
+        return addItem(item).catch(function (err) {
+          console.warn('[ExpertFence] add-to-cart failed for', item.calc_sku, err);
+          failed.push(item.calc_sku + ' (' + (err.message || 'unknown') + ')');
+        });
+      });
+    });
+
+    chain.then(function () {
+      if (failed.length) {
+        alert('Some items could not be added to cart:\n' + failed.join('\n'));
+      } else {
+        // Take the shopper to the cart so they can review + check out.
+        window.location.href = '/cart/';
+      }
+    });
+  });
+})();
+</script>

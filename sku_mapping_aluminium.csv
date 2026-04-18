@@ -1,0 +1,45 @@
+calc_sku,store_product_id,store_sku,product_name,notes
+SS-FTP-2450-B,100,SS-FTP-2450-B,2450mmW Flat Top Pool Fencing Panel – BLACK,
+SS-FTP-2450-W,1073,SS-FTP-2450-W,SS-FTP-2450-W (Calculator SKU),placeholder product — confirm it's real
+SS-FTP-2450-MN,1071,SS-FTP-2450-MN,SS-FTP-2450-MN (Calculator SKU),placeholder product — confirm it's real
+SS-BH4-B,86,SS-BH4-B,Six Star - Bracket - HORIZONTAL - BLACK,
+SS-BH4-W,1065,SS-BH4-W,SS-BH4-W (Calculator SKU),placeholder product — confirm it's real
+SS-BH4-MN,1063,SS-BH4-MN,SS-BH4-MN (Calculator SKU),placeholder product — confirm it's real
+SS-FTG-0975-B,96,SS-FTG-0975-B,Flat Top Pool Fencing Gate – BLACK,
+SS-FTG-0975-W,1069,SS-FTG-0975-W,SS-FTG-0975-W (Calculator SKU),placeholder product — confirm it's real
+SS-FTG-0975-MN,1067,SS-FTG-0975-MN,SS-FTG-0975-MN (Calculator SKU),placeholder product — confirm it's real
+BLA-PNL-2200-1200-B,789,BLA-PNL-2200-1200-B,BLADE- PANEL - 2200Wx1200H - Black,
+FF-BH-OPEN-4PK-B,795,FF-BH-OPEN-4PK-B,FastFit- Bracket OPEN- 40x40mm-4PK-Black,
+BLA-GATE-0975-1200-B,785,BLA-GATE-0975-1200-B,BLADE - GATE - 975Wx1200H - Black,
+BR-PANEL-2205-1200-B,334,BR-PANEL-2205-1200-B,BARR- Panel - 2205Wx1200H - Black,
+BR-PANEL-2205-1200-W,336,BR-PANEL-2205-1200-W,BARR- Panel - 2205Wx1200H - White,
+BR-BR25-B-4PK,306,BR-BR25-B-4PK,"BARR - C"" Bracket 25mmH- 4 pk - Black""",
+BR-BR25-W-4PK,308,BR-BR25-W-4PK,"BARR - C"" Bracket 25mmH- 4 pk - White""",
+BR-GATE-0975-1200-B,318,BR-GATE-0975-1200-B,BARR- GATE - 975Wx1200H - Black,
+BR-GATE-0975-1200-W,320,BR-GATE-0975-1200-W,BARR- GATE - 975Wx1200H - White,
+SS-1300-BP-B,72,SS-1300-BP-B,Six Star - 1300mm - POST with BP - BLACK,
+SS-1300-BP-MN,1055,SS-1300-BP-MN,SS-1300-BP-MN (Calculator SKU),placeholder product — confirm it's real
+SS-1800-B,76,SS-1800-B,Six Star - 1800mm - POST - BLACK,
+SS-1800-W,545,XP-1800-FP-W,50mm Post - 1800mm - WHITE,redirect — SS-1800-W stub has no real product; XP-1800-FP-W is the real White inground equivalent
+SS-1800-MN,1059,SS-1800-MN,SS-1800-MN (Calculator SKU),placeholder product — confirm it's real
+SS-1600-BP-B,74,SS-1600-BP-B,Six Star - 1600mm - POST with BP - BLACK,
+SS-1600-BP-MN,1057,SS-1600-BP-MN,SS-1600-BP-MN (Calculator SKU),placeholder product — confirm it's real
+SS-2100-B,78,SS-2100-B,Six Star - 2100mm - POST - BLACK,
+SS-2100-W,577,XP-2400-FP-W,50mm Post - 2400mm - WHITE,"redirect — no White 2100mm product exists; substitute XP-2400-FP-W (next size up, customer trims)"
+SS-2100-MN,1061,SS-2100-MN,SS-2100-MN (Calculator SKU),placeholder product — confirm it's real
+XP-1300-BP-W,1076,XP-1300-BP-W,Xpress 1300 Base Plate Post (White),
+BR-1280-BP-B,290,BR-1280-BP-B,BARR - 1280mm - POST with BP - Black,
+BR-1280-BP-W,292,BR-1280-BP-W,BARR - 1280mm - POST with BP - White,
+BR-1800-B,294,BR-1800-B,BARR- POST - 1800mm Long - Black,
+BR-1800-W,300,BR-1800-W,BARR- POST - 1800mm Long - White,
+ML-TL-TC-H-AT,1052,ML-TL-TC-H-AT,Gate Hinge + Latch Set (Black),
+TC-H-AT-2L-W,1074,TC-H-AT-2L-W,Gate Hinge Set 2 Pack (White),
+ML-TL-W,1053,ML-TL-W,Gate Latch Set (White),
+XP-DR-B,901,XP-DR-B,Flat Top Tubular Pool Fencing Dress Ring 50mm Post – Black,
+XP-DR-W,1078,XP-DR-W,Dress Ring (White),
+SS-DC-B,94,SS-DC-B,Six Star TUBULAR - DOMICAL COVER - Black,
+XP-DC-2P-W,683,XP-DC-2P-W,2 PC DOMICAL COVER (50mm post) - WHITE,
+BR-DR-B,314,BR-DR-B,BARR - Dress Ring - Black,
+BR-DR-W,316,BR-DR-W,BARR - Dress Ring - White,
+BR-DC-2P-B,310,BR-DC-2P-B,BARR - 2 Part Domical Cover - BLACK,
+BR-DC-2P-W,312,BR-DC-2P-W,BARR - 2 Part Domical Cover - WHITE,
