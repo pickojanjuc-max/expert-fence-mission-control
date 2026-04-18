@@ -129,7 +129,7 @@ export default function DashboardClient({ email, plan }) {
   };
 
   const gridContainerStyle = {
-    maxWidth: '960px',
+    maxWidth: '980px',
     margin: '0 auto',
     display: 'grid',
     gridTemplateColumns: 'repeat(3, 1fr)',
@@ -403,6 +403,38 @@ export default function DashboardClient({ email, plan }) {
             </button>
           </div>
 
+          {/* Custom Glass Card */}
+          <div
+            style={cardStyle} className="ef-card"
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = '#0f766e';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(15, 118, 110, 0.1)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = '#e5e7eb';
+              e.currentTarget.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.05)';
+            }}
+          >
+            <div style={{ ...iconAreaGlassStyle, background: '#ccfbf1', color: '#0f766e' }} className="ef-card-icon">
+              <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+                <rect x="7" y="7" width="11" height="26" stroke="currentColor" strokeWidth="2" rx="1" fill="currentColor" fillOpacity="0.15" />
+                <rect x="22" y="7" width="11" height="26" stroke="currentColor" strokeWidth="2" rx="1" fill="currentColor" fillOpacity="0.15" />
+                <line x1="7" y1="20" x2="18" y2="20" stroke="currentColor" strokeWidth="1" opacity="0.4" />
+                <line x1="22" y1="20" x2="33" y2="20" stroke="currentColor" strokeWidth="1" opacity="0.4" />
+              </svg>
+            </div>
+            <h3 style={cardTitleStyle}>Custom Glass</h3>
+            <p style={cardDescriptionStyle}>Panel-by-panel glass quoting — pool fence & balustrade</p>
+            <button
+              style={{ ...buttonStyle, backgroundColor: '#0f766e' }}
+              onClick={() => handleCalculatorClick('/calculator/custom-glass')}
+              onMouseEnter={(e) => { e.target.style.backgroundColor = '#0d6460'; }}
+              onMouseLeave={(e) => { e.target.style.backgroundColor = '#0f766e'; }}
+            >
+              Open Calculator
+            </button>
+          </div>
+
         </div>
 
         {/* Saved Projects */}
@@ -429,8 +461,8 @@ export default function DashboardClient({ email, plan }) {
                   complete: { bg: '#d1fae5', text: '#059669' },
                 };
                 const sc = statusColors[p.status] || statusColors.draft;
-                const calcTypeLabels = { glass: 'Glass Pool Fencing', aluminium: 'Aluminium Fencing', balustrade: 'Glass Balustrade', wire: 'Stainless Wire Balustrade', aire: 'AIRE+ Balustrade' };
-                const calcTypeIcons = { glass: '🔷', aluminium: '🔶', balustrade: '🟦', wire: '🔩', aire: '🟫' };
+                const calcTypeLabels = { glass: 'Glass Pool Fencing', aluminium: 'Aluminium Fencing', balustrade: 'Glass Balustrade', wire: 'Stainless Wire Balustrade', aire: 'AIRE+ Balustrade', 'custom-glass': 'Custom Glass' };
+                const calcTypeIcons = { glass: '🔷', aluminium: '🔶', balustrade: '🟦', wire: '🔩', aire: '🟫', 'custom-glass': '🪟' };
 
                 return (
                   <div
