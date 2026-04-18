@@ -89,16 +89,30 @@ export default function AluminiumEmbedClient({ token, tenantName, skuMap }) {
   }, [selectedStyle, colour, mount, shape, runs]);
 
   // ── Keep shape's run count in sync ──────────────────────────────────────
+  // Also enforces the rectangle rule for Box shape: C mirrors A, D mirrors B
+  // (sizing only — gates stay per-side).
   useEffect(() => {
     const target = SHAPE_MAP[shape];
     if (target === 0) return;
-    if (runs.length < target) {
-      const next = [...runs];
+
+    let next = [...runs];
+    if (next.length < target) {
       while (next.length < target) next.push(getDefaultAluminiumRun());
-      setRuns(next);
-    } else if (runs.length > target) {
-      setRuns(runs.slice(0, target));
+    } else if (next.length > target) {
+      next = next.slice(0, target);
     }
+
+    if (shape === "Box" && next.length === 4) {
+      const aLen = Number(next[0]?.length_mm) || 6000;
+      const bLen = Number(next[1]?.length_mm) || 6000;
+      next[2] = { ...next[2], length_mm: aLen };
+      next[3] = { ...next[3], length_mm: bLen };
+    }
+
+    const changed =
+      next.length !== runs.length ||
+      next.some((r, i) => r !== runs[i]);
+    if (changed) setRuns(next);
   }, [shape]);
 
   // ── Ensure the selected colour is valid for the current style ───────────

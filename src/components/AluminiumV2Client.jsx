@@ -142,22 +142,34 @@ export default function AluminiumV2Client() {
     setTimeout(() => setSaveMsg(""), 2000);
   }
 
-  // Manage run count based on shape
+  // Manage run count based on shape.
+  // Also enforces the rectangle rule for Box shape: the moment Box is
+  // selected, Side C mirrors Side A and Side D mirrors Side B (sizing only —
+  // gates and other per-side settings stay independent).
   useEffect(() => {
     const targetCount = SHAPE_MAP[shape];
     if (targetCount === 0) return; // Straight — allow dynamic count
 
-    if (runs.length < targetCount) {
-      // Add runs
-      const newRuns = [...runs];
-      while (newRuns.length < targetCount) {
-        newRuns.push(getDefaultAluminiumRun());
-      }
-      setRuns(newRuns);
-    } else if (runs.length > targetCount) {
-      // Remove runs
-      setRuns(runs.slice(0, targetCount));
+    let next = [...runs];
+
+    if (next.length < targetCount) {
+      while (next.length < targetCount) next.push(getDefaultAluminiumRun());
+    } else if (next.length > targetCount) {
+      next = next.slice(0, targetCount);
     }
+
+    // Rectangle rule — only size mirrors, not gates.
+    if (shape === "Box" && next.length === 4) {
+      const aLen = Number(next[0]?.length_mm) || 6000;
+      const bLen = Number(next[1]?.length_mm) || 6000;
+      next[2] = { ...next[2], length_mm: aLen };
+      next[3] = { ...next[3], length_mm: bLen };
+    }
+
+    const changed =
+      next.length !== runs.length ||
+      next.some((r, i) => r !== runs[i]);
+    if (changed) setRuns(next);
   }, [shape]);
 
   // Ensure colour is valid for selected style

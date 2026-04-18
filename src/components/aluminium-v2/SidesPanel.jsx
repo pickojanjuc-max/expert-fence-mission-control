@@ -20,15 +20,35 @@ export default function SidesPanel({
     setInputValues(runs.map((r) => String(r.length_mm)));
   }, [runs.length]);
 
+  // Box shape must always be a true rectangle:
+  //   Side A (0) ↔ Side C (2) are opposite long sides
+  //   Side B (1) ↔ Side D (3) are opposite short sides
+  // Editing one side forces the opposite side to match.
+  const oppositeBoxIndex = (idx) => {
+    if (idx === 0) return 2;
+    if (idx === 2) return 0;
+    if (idx === 1) return 3;
+    if (idx === 3) return 1;
+    return -1;
+  };
+
   const commitLength = (idx, val) => {
     const num = Math.max(500, Number(val) || 500);
     const next = [...runs];
     next[idx] = { ...next[idx], length_mm: num };
+
+    // Rectangle rule for Box shape — mirror to the opposite side.
+    const opp = shape === "Box" && next.length === 4 ? oppositeBoxIndex(idx) : -1;
+    if (opp >= 0 && next[opp]) {
+      next[opp] = { ...next[opp], length_mm: num };
+    }
+
     setRuns(next);
 
     setInputValues((prev) => {
       const a = [...prev];
       a[idx] = String(num);
+      if (opp >= 0) a[opp] = String(num);
       return a;
     });
   };
