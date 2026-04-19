@@ -502,7 +502,25 @@ export default function CustomGlassCalculatorPage() {
         onSaved={handleProjectSaved}
         calculatorType="custom-glass"
         calculatorState={{ jobType, panels }}
-        bomSnapshot={totals}
+        bomSnapshot={{
+          // Build a real BOM array so the project page's consolidator can pick
+          // up custom-glass panels alongside other calculators. Identical
+          // size/thickness/type/shape lines collapse via the `key = SKU` rule
+          // in consolidateBoms().
+          consolidated: panelResults.map((pr) => {
+            const typeShort = (GLASS_TYPE_LABELS[pr.glassType] || pr.glassType || '').split(' ')[0];
+            const sku = `GLASS-H${pr.heightMM}-W${pr.widthMM}-T${pr.thickness}-${(pr.glassType || 'std').toUpperCase()}-${(pr.shape || 'rect').toUpperCase()}`;
+            const unitSell = pr.qty > 0 ? pr.lineSell / pr.qty : pr.lineSell;
+            return {
+              SKU: sku,
+              Item: `Glass Panel ${pr.heightMM}×${pr.widthMM}×${pr.thickness}mm (${typeShort}, ${pr.shape})`,
+              Qty: pr.qty,
+              'Unit Sell (ex GST)': unitSell,
+              'Line Sell (ex GST)': pr.lineSell,
+            };
+          }),
+          totals,
+        }}
         currentProjectId={projectId}
         currentProjectName={projectName}
         currentCalculationId={calculationId}

@@ -19,8 +19,30 @@ function statusColor(s) {
   return map[s] || map.draft;
 }
 
-const calcTypeLabels = { glass: 'Glass Pool Fencing', aluminium: 'Aluminium Fencing' };
-const calcTypeIcons = { glass: '🔷', aluminium: '🔶' };
+const calcTypeLabels = {
+  glass: 'Glass Pool Fencing',
+  aluminium: 'Aluminium Fencing',
+  balustrade: 'Glass Balustrade',
+  wire: 'Stainless Wire Balustrade',
+  aire: 'AIRE+ Balustrade',
+  'custom-glass': 'Custom Glass',
+};
+const calcTypeIcons = {
+  glass: '🔷',
+  aluminium: '🔶',
+  balustrade: '🪟',
+  wire: '🧵',
+  aire: '🏛',
+  'custom-glass': '✨',
+};
+const calcTypeRoutes = {
+  glass: '/calculator/glass',
+  aluminium: '/calculator/aluminium',
+  balustrade: '/calculator/balustrade',
+  wire: '/calculator/wire',
+  aire: '/calculator/aire',
+  'custom-glass': '/calculator/custom-glass',
+};
 
 // ── Consolidate BOMs across all calculations ───────────────────────
 function consolidateBoms(calculations) {
@@ -551,7 +573,7 @@ export default function ProjectDetailClient({ projectId }) {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            const path = c.calculator_type === 'glass' ? '/calculator/glass' : c.calculator_type === 'balustrade' ? '/calculator/balustrade' : '/calculator/aluminium';
+                            const path = calcTypeRoutes[c.calculator_type] || '/calculator/aluminium';
                             router.push(`${path}?calc=${c.id}`);
                           }}
                           style={{
