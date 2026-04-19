@@ -132,7 +132,7 @@ export default function SidesPanel({
             );
           })}
 
-          {shape === "Straight" && runs.length < 4 && (
+          {shape === "Straight" && runs.length < 10 && (
             <button
               onClick={addRun}
               className="w-full h-8 rounded-lg border border-dashed border-gray-300 text-xs text-gray-400 hover:border-cyan-400 hover:text-cyan-500 transition-colors flex items-center justify-center gap-1"
