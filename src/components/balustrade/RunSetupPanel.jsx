@@ -293,7 +293,16 @@ export default function RunSetupPanel({ runs, setRuns, selectedRun, intersection
       <Section label="Geometry">
         <div className="grid grid-cols-2 gap-2">
           <Field label="Max panel">
-            <Select value={String(cfg.maxPanel)} onValueChange={(v) => update("maxPanel", Number(v))}>
+            <Select
+              value={String(cfg.maxPanel)}
+              onValueChange={(v) => {
+                // Project-level setting: apply the max panel to every run,
+                // not just the selected one. New runs already inherit from
+                // run 1, but existing runs were keeping their old value.
+                const next = Number(v);
+                setRuns(runs.map((r) => ({ ...r, maxPanel: next })));
+              }}
+            >
               <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>{PANEL_SIZES.map(p => <SelectItem key={p} value={String(p)}>{p}mm</SelectItem>)}</SelectContent>
             </Select>
