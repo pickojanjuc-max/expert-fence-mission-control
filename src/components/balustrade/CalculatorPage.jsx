@@ -151,6 +151,10 @@ export default function Calculator() {
   }
 
   useEffect(() => {
+    // Skip until hydration completes — otherwise the stale runCount in this
+    // effect's closure trims sessionStorage-restored runs back to 1 on mount,
+    // which then re-pads with defaults and wipes runs 2..N.
+    if (!hydrated) return;
     setRuns((prev) => {
       if (prev.length === runCount) return prev;
       if (prev.length < runCount) {
@@ -164,7 +168,7 @@ export default function Calculator() {
       }
       return prev.slice(0, runCount);
     });
-  }, [runCount]);
+  }, [runCount, hydrated]);
 
   const handleShapeChange = useCallback((newShape) => {
     setShape(newShape);
