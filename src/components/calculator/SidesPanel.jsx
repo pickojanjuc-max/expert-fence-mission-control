@@ -56,7 +56,7 @@ export default function SidesPanel({
   };
 
   const addRun = () => {
-    const maxRuns = shape === "Straight" ? 4 : 8;
+    const maxRuns = shape === "Straight" ? 10 : 8;
     if (runs.length >= maxRuns) return;
     const newRun = { ...runs[0], gateOn: false };
     // For Straight runs, default new runs to 6000mm
@@ -153,7 +153,7 @@ export default function SidesPanel({
             );
           })}
 
-          {shape === "Straight" && runs.length < 4 && (
+          {shape === "Straight" && runs.length < 10 && (
             <button
               onClick={addRun}
               className="w-full h-8 rounded-lg border border-dashed border-gray-300 text-xs text-gray-400 hover:border-cyan-400 hover:text-cyan-500 transition-colors flex items-center justify-center gap-1"
