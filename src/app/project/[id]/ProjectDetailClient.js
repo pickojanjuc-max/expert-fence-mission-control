@@ -24,9 +24,20 @@ function statusColor(s) {
   return map[s] || map.draft;
 }
 
-// ── Consolidate BOMs across all calculations ───────────────────────
+// ── Normalise a BOM line into a common shape ──────────────────────
+function normaliseBomItem(item) {
+  const sku = item.SKU || item.sku || item.code || '';
+  const name = item.Item || item.item || item.description || item.name || sku;
+  const qty = Number(item.Qty || item.qty || item.quantity || 0);
+  const unitPrice = Number(item['Unit Sell (ex GST)'] || item.unit_price || item.unitPrice || 0);
+  const linePrice = Number(item['Line Sell (ex GST)'] || item.line_price || item.linePrice || unitPrice * qty);
+  return { sku, name, qty, unitPrice, linePrice };
+}
+
+// ── Consolidate BOMs — both grouped (by calc) and flat (for PDFs) ──
 function consolidateBoms(calculations) {
-  const itemMap = {};
+  const groups = [];
+  const flatMap = {};
   let materialTotal = 0;
 
   calculations.forEach((calc) => {
@@ -35,31 +46,48 @@ function consolidateBoms(calculations) {
 
     // Glass calculator stores { consolidated, unsolved }
     // Aluminium calculator stores { bom, summary }
-    const items = snap.consolidated || snap.bom || [];
+    const rawItems = snap.consolidated || snap.bom || [];
+    if (!rawItems.length) return;
 
-    items.forEach((item) => {
-      // Normalise field names between calculators
-      const sku = item.SKU || item.sku || item.code || '';
-      const name = item.Item || item.item || item.description || item.name || sku;
-      const qty = Number(item.Qty || item.qty || item.quantity || 0);
-      const unitPrice = Number(item['Unit Sell (ex GST)'] || item.unit_price || item.unitPrice || 0);
-      const linePrice = Number(item['Line Sell (ex GST)'] || item.line_price || item.linePrice || unitPrice * qty);
-
-      const key = sku || name;
+    // Per-calc consolidation (merge same-SKU lines within this one calc)
+    const groupMap = {};
+    let groupSubtotal = 0;
+    rawItems.forEach((raw) => {
+      const item = normaliseBomItem(raw);
+      const key = item.sku || item.name;
       if (!key) return;
 
-      if (itemMap[key]) {
-        itemMap[key].qty += qty;
-        itemMap[key].linePrice += linePrice;
+      if (groupMap[key]) {
+        groupMap[key].qty += item.qty;
+        groupMap[key].linePrice += item.linePrice;
       } else {
-        itemMap[key] = { sku, name, qty, unitPrice, linePrice };
+        groupMap[key] = { ...item };
       }
-      materialTotal += linePrice;
+      groupSubtotal += item.linePrice;
+
+      // Flat (cross-calc) consolidation for PDFs / purchase orders
+      if (flatMap[key]) {
+        flatMap[key].qty += item.qty;
+        flatMap[key].linePrice += item.linePrice;
+      } else {
+        flatMap[key] = { ...item };
+      }
+      materialTotal += item.linePrice;
+    });
+
+    groups.push({
+      id: calc.id,
+      calculatorType: calc.calculator_type,
+      label: calc.label || '',
+      updatedAt: calc.updated_at,
+      items: Object.values(groupMap).sort((a, b) => a.name.localeCompare(b.name)),
+      subtotal: groupSubtotal,
     });
   });
 
   return {
-    items: Object.values(itemMap).sort((a, b) => a.name.localeCompare(b.name)),
+    groups,
+    items: Object.values(flatMap).sort((a, b) => a.name.localeCompare(b.name)),
     materialTotal,
   };
 }
@@ -119,7 +147,7 @@ export default function ProjectDetailClient({ projectId }) {
 
   // ── Calculations & consolidated BOM ─────────────────────────────────
   const calculations = project?.calculations || [];
-  const { items: bomItems, materialTotal } = consolidateBoms(calculations);
+  const { groups: bomGroups, items: bomItems, materialTotal } = consolidateBoms(calculations);
 
   // ── Quote totals ────────────────────────────────────────────────────
   const labourTotal = labourHours * hourlyRate;
@@ -612,36 +640,72 @@ export default function ProjectDetailClient({ projectId }) {
               )}
             </div>
 
-            {/* Consolidated BOM */}
+            {/* Bill of Materials — grouped by calculator */}
             <div style={cardStyle}>
-              <h2 style={sectionTitle}>Consolidated Bill of Materials</h2>
-              {bomItems.length === 0 ? (
+              <h2 style={sectionTitle}>Bill of Materials</h2>
+              {bomGroups.length === 0 ? (
                 <p style={{ fontSize: '13px', color: '#9ca3af', margin: 0 }}>No BOM data yet.</p>
               ) : (
                 <>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                    <thead>
-                      <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
-                        <th style={thStyle}>Item</th>
-                        <th style={{ ...thStyle, width: '80px' }}>SKU</th>
-                        <th style={{ ...thStyle, textAlign: 'right', width: '50px' }}>Qty</th>
-                        <th style={{ ...thStyle, textAlign: 'right', width: '80px' }}>Unit (ex)</th>
-                        <th style={{ ...thStyle, textAlign: 'right', width: '80px' }}>Line (ex)</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {bomItems.map((item, i) => (
-                        <tr key={i} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                          <td style={tdStyle}>{item.name}</td>
-                          <td style={{ ...tdStyle, color: '#9ca3af', fontSize: '11px' }}>{item.sku}</td>
-                          <td style={{ ...tdStyle, textAlign: 'right' }}>{item.qty}</td>
-                          <td style={{ ...tdStyle, textAlign: 'right' }}>{money(item.unitPrice)}</td>
-                          <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600 }}>{money(item.linePrice)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px', fontSize: '13px', fontWeight: 600 }}>
+                  {bomGroups.map((group, gi) => (
+                    <div
+                      key={group.id || gi}
+                      style={{
+                        marginBottom: gi < bomGroups.length - 1 ? '16px' : '0',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <div style={{
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        padding: '8px 12px', backgroundColor: '#f9fafb',
+                        borderBottom: '1px solid #e5e7eb',
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '14px' }}>{calcTypeIcons[group.calculatorType] || '📐'}</span>
+                          <span style={{ fontSize: '13px', fontWeight: 600, color: '#111827' }}>
+                            {group.label || calcTypeLabels[group.calculatorType] || group.calculatorType}
+                          </span>
+                          {group.label && (
+                            <span style={{ fontSize: '11px', color: '#9ca3af' }}>
+                              · {calcTypeLabels[group.calculatorType] || group.calculatorType}
+                            </span>
+                          )}
+                        </div>
+                        <span style={{ fontSize: '13px', fontWeight: 600, color: '#111827' }}>
+                          {money(group.subtotal)}
+                        </span>
+                      </div>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                        <thead>
+                          <tr style={{ borderBottom: '1px solid #f3f4f6' }}>
+                            <th style={thStyle}>Item</th>
+                            <th style={{ ...thStyle, width: '80px' }}>SKU</th>
+                            <th style={{ ...thStyle, textAlign: 'right', width: '50px' }}>Qty</th>
+                            <th style={{ ...thStyle, textAlign: 'right', width: '80px' }}>Unit (ex)</th>
+                            <th style={{ ...thStyle, textAlign: 'right', width: '80px' }}>Line (ex)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {group.items.map((item, i) => (
+                            <tr key={i} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                              <td style={tdStyle}>{item.name}</td>
+                              <td style={{ ...tdStyle, color: '#9ca3af', fontSize: '11px' }}>{item.sku}</td>
+                              <td style={{ ...tdStyle, textAlign: 'right' }}>{item.qty}</td>
+                              <td style={{ ...tdStyle, textAlign: 'right' }}>{money(item.unitPrice)}</td>
+                              <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600 }}>{money(item.linePrice)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ))}
+                  <div style={{
+                    display: 'flex', justifyContent: 'flex-end', marginTop: '12px',
+                    paddingTop: '10px', borderTop: '2px solid #e5e7eb',
+                    fontSize: '14px', fontWeight: 700, color: '#111827',
+                  }}>
                     Materials total: {money(materialTotal)}
                   </div>
                 </>
