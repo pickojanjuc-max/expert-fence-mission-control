@@ -108,6 +108,7 @@ export default function ProjectDetailClient({ projectId }) {
   const [saveMsg, setSaveMsg] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [calcDeletingId, setCalcDeletingId] = useState(null);
 
   // ── Load project ────────────────────────────────────────────────────
   const loadProject = useCallback(async () => {
@@ -205,6 +206,25 @@ export default function ProjectDetailClient({ projectId }) {
       });
       setProject((prev) => ({ ...prev, status: newStatus }));
     } catch {}
+  }
+
+  // ── Delete a single Calculation ─────────────────────────────────────
+  async function handleDeleteCalc(calcId) {
+    if (!calcId) return;
+    if (!window.confirm('Remove this calculation from the project? This cannot be undone.')) return;
+    setCalcDeletingId(calcId);
+    try {
+      const res = await fetch(`/api/calculations/${calcId}`, { method: 'DELETE' });
+      if (res.ok) {
+        await loadProject();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setSaveMsg('Error: ' + (data.error || 'Failed to delete calculation'));
+      }
+    } catch (e) {
+      setSaveMsg('Error: ' + e.message);
+    }
+    setCalcDeletingId(null);
   }
 
   // ── Delete Project ──────────────────────────────────────────────────
@@ -570,22 +590,41 @@ export default function ProjectDetailClient({ projectId }) {
                             </div>
                           </div>
                         </div>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const path = calcTypeRoutes[c.calculator_type] || '/calculator/aluminium';
-                            router.push(`${path}?calc=${c.id}`);
-                          }}
-                          style={{
-                            padding: '6px 12px', fontSize: '12px', fontWeight: 600,
-                            backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '4px',
-                            cursor: 'pointer', transition: 'background-color 0.1s',
-                          }}
-                          onMouseEnter={(e) => e.target.style.backgroundColor = '#059669'}
-                          onMouseLeave={(e) => e.target.style.backgroundColor = '#10b981'}
-                        >
-                          Open Calculator
-                        </button>
+                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const path = calcTypeRoutes[c.calculator_type] || '/calculator/aluminium';
+                              router.push(`${path}?calc=${c.id}`);
+                            }}
+                            style={{
+                              padding: '6px 12px', fontSize: '12px', fontWeight: 600,
+                              backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '4px',
+                              cursor: 'pointer', transition: 'background-color 0.1s',
+                            }}
+                            onMouseEnter={(e) => e.target.style.backgroundColor = '#059669'}
+                            onMouseLeave={(e) => e.target.style.backgroundColor = '#10b981'}
+                          >
+                            Open Calculator
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleDeleteCalc(c.id); }}
+                            disabled={calcDeletingId === c.id}
+                            title="Remove from project"
+                            style={{
+                              padding: '6px 9px', fontSize: '13px', fontWeight: 600,
+                              backgroundColor: 'transparent', color: '#dc2626',
+                              border: '1px solid #fecaca', borderRadius: '4px',
+                              cursor: calcDeletingId === c.id ? 'not-allowed' : 'pointer',
+                              opacity: calcDeletingId === c.id ? 0.5 : 1,
+                              lineHeight: 1,
+                            }}
+                            onMouseEnter={(e) => { if (calcDeletingId !== c.id) { e.target.style.backgroundColor = '#fef2f2'; e.target.style.borderColor = '#dc2626'; } }}
+                            onMouseLeave={(e) => { e.target.style.backgroundColor = 'transparent'; e.target.style.borderColor = '#fecaca'; }}
+                          >
+                            🗑
+                          </button>
+                        </div>
                       </div>
                     );
                   })}
