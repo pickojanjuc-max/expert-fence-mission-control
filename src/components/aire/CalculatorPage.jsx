@@ -4,6 +4,7 @@ import { buildAireBOM, defaultAireRun, AIRE_DEFAULTS, SHAPE_CORNERS, SHAPE_RUN_C
 import { COST_MAP } from '@/lib/costData';
 import SaveProjectModal from '@/components/SaveProjectModal';
 import ElevationPreview from '@/components/aire/ElevationPreview';
+import { updateCalculation } from '@/lib/saveCalculation';
 
 // ── Session persistence ───────────────────────────────────────────────────────
 const STORAGE_KEY = 'ef_aire_calc_state';
@@ -284,7 +285,12 @@ export default function AireCalculator() {
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#f9fafb' }}>
       {/* Top nav */}
       <header style={{ background: 'white', borderBottom: '1px solid #e5e7eb', padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-        <a href="/dashboard" style={{ fontSize: 13, color: '#2563eb', fontWeight: 500, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>← Dashboard</a>
+        <a
+          href={projectId ? `/project/${projectId}` : '/dashboard'}
+          style={{ fontSize: 13, color: '#2563eb', fontWeight: 500, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}
+        >
+          ← {projectId ? (projectName ? `Back to ${projectName}` : 'Back to Project') : 'Dashboard'}
+        </a>
         <div style={{ width: 1, height: 16, background: '#e5e7eb' }} />
         <span style={{ fontSize: 13, fontWeight: 600, color: '#111827', flex: 1 }}>
           AIRE+ Balustrade Calculator
@@ -292,7 +298,29 @@ export default function AireCalculator() {
         </span>
         {saveMsg && <span style={{ fontSize: 12, color: '#16a34a', fontWeight: 600 }}>{saveMsg}</span>}
         <button
-          onClick={() => setShowSaveModal(true)}
+          onClick={async () => {
+            if (projectId) {
+              // Direct update — no modal prompt when already inside a project
+              try {
+                const res = await updateCalculation({
+                  projectId,
+                  projectName,
+                  calculationId,
+                  calculatorType: 'aire',
+                  calculatorState: { colour, handrailType, mountType, infillType, fenceStyle, shape, runs, activeRun },
+                  bomSnapshot: getCurrentBom(),
+                  label: 'AIRE+ Balustrade',
+                });
+                handleProjectSaved(res);
+                setSaveMsg('Saved');
+                setTimeout(() => setSaveMsg(''), 1500);
+              } catch (e) {
+                setSaveMsg('Error: ' + e.message);
+              }
+            } else {
+              setShowSaveModal(true);
+            }
+          }}
           disabled={enrichedBOM.length === 0}
           style={{
             padding: '6px 12px',

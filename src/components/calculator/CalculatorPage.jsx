@@ -9,6 +9,7 @@ import SidesPanel from "@/components/calculator/SidesPanel";
 import BOMPanel from "@/components/calculator/BOMPanel";
 import SaveProjectModal from "@/components/SaveProjectModal";
 import { COST_MAP } from "@/lib/costData";
+import { updateCalculation } from "@/lib/saveCalculation";
 
 // ── Session persistence ──────────────────────────────────────────────
 const STORAGE_KEY = "ef_glass_calc_state";
@@ -239,7 +240,12 @@ export default function Calculator() {
     <div className="min-h-screen md:h-screen bg-gray-50 flex flex-col overflow-y-auto md:overflow-hidden">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 px-3 md:px-5 py-3 flex items-center gap-3 flex-shrink-0">
-        <a href="/dashboard" className="text-sm text-blue-600 font-medium hover:underline flex items-center gap-1">← Dashboard</a>
+        <a
+          href={projectId ? `/project/${projectId}` : '/dashboard'}
+          className="text-sm text-blue-600 font-medium hover:underline flex items-center gap-1"
+        >
+          ← {projectId ? (projectName ? `Back to ${projectName}` : 'Back to Project') : 'Dashboard'}
+        </a>
         <div className="w-7 h-7 bg-cyan-500 rounded-md flex items-center justify-center">
           <span className="text-white text-xs font-black">EF</span>
         </div>
@@ -248,10 +254,28 @@ export default function Calculator() {
           {projectName && <span className="text-gray-400 font-normal ml-2">— {projectName}</span>}
         </span>
         <button
-          onClick={() => setShowSaveModal(true)}
+          onClick={async () => {
+            if (projectId) {
+              try {
+                const res = await updateCalculation({
+                  projectId, projectName, calculationId,
+                  calculatorType: 'glass',
+                  calculatorState: { shape, runCount, sharedCorners, runs, finishes, selectedRun },
+                  bomSnapshot: getCurrentBom(),
+                });
+                handleProjectSaved(res);
+                setSaveMsg('Saved');
+                setTimeout(() => setSaveMsg(''), 1500);
+              } catch (e) {
+                setSaveMsg('Error: ' + e.message);
+              }
+            } else {
+              setShowSaveModal(true);
+            }
+          }}
           className="px-3 py-1.5 text-xs font-semibold text-white bg-emerald-500 hover:bg-emerald-600 rounded-md transition-colors"
         >
-          Save Project
+          {projectId ? 'Update Project' : 'Save Project'}
         </button>
         {saveMsg && <span className="text-xs text-emerald-600 font-medium">{saveMsg}</span>}
       </header>

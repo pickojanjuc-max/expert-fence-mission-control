@@ -7,6 +7,7 @@ import {
 import { COST_MAP } from '@/lib/costData';
 import SaveProjectModal from '@/components/SaveProjectModal';
 import WireElevationPreview from '@/components/wire/ElevationPreview';
+import { updateCalculation } from '@/lib/saveCalculation';
 
 // ── Session persistence ───────────────────────────────────────────────────────
 const STORAGE_KEY = 'ef_wire_calc_state';
@@ -193,9 +194,50 @@ export default function WireCalculator() {
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#f9fafb' }}>
       {/* Top nav */}
       <header style={{ background: 'white', borderBottom: '1px solid #e5e7eb', padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-        <a href="/dashboard" style={{ fontSize: 13, color: '#2563eb', fontWeight: 500, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>← Dashboard</a>
+        <a
+          href={projectId ? `/project/${projectId}` : '/dashboard'}
+          style={{ fontSize: 13, color: '#2563eb', fontWeight: 500, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}
+        >
+          ← {projectId ? (projectName ? `Back to ${projectName}` : 'Back to Project') : 'Dashboard'}
+        </a>
         <div style={{ width: 1, height: 16, background: '#e5e7eb' }} />
-        <span style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>Stainless Wire Balustrade Calculator</span>
+        <span style={{ fontSize: 13, fontWeight: 600, color: '#111827', flex: 1 }}>
+          Stainless Wire Balustrade Calculator
+          {projectName && <span style={{ color: '#9ca3af', fontWeight: 400, marginLeft: 8 }}>— {projectName}</span>}
+        </span>
+        {saveMsg && <span style={{ fontSize: 12, color: '#16a34a', fontWeight: 600 }}>{saveMsg}</span>}
+        <button
+          onClick={async () => {
+            if (projectId) {
+              try {
+                const res = await updateCalculation({
+                  projectId, projectName, calculationId,
+                  calculatorType: 'wire',
+                  calculatorState: { mode, terminationStyle, openingMM, wireAllowanceMM, selectedWireCount, customDroppersRequired, runs, activeRun },
+                  bomSnapshot: getCurrentBom(),
+                  label: 'Stainless Wire Balustrade',
+                });
+                handleProjectSaved(res);
+                setSaveMsg('Saved');
+                setTimeout(() => setSaveMsg(''), 1500);
+              } catch (e) {
+                setSaveMsg('Error: ' + e.message);
+              }
+            } else {
+              setShowSaveModal(true);
+            }
+          }}
+          disabled={!hasBOM}
+          style={{
+            padding: '6px 12px',
+            background: hasBOM ? '#10b981' : '#d1d5db',
+            color: 'white', border: 'none', borderRadius: 6,
+            fontSize: 12, fontWeight: 600,
+            cursor: hasBOM ? 'pointer' : 'default',
+          }}
+        >
+          {projectId ? 'Update Project' : 'Save Project'}
+        </button>
       </header>
     <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', padding: '24px 20px', flex: 1 }}>
 
@@ -438,33 +480,6 @@ export default function WireCalculator() {
           )}
         </div>
 
-        {/* Save */}
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <button
-            onClick={() => setShowSaveModal(true)}
-            disabled={!hasBOM}
-            style={{
-              flex: 1,
-              padding: '10px 16px',
-              background: hasBOM ? '#0369a1' : '#9ca3af',
-              color: 'white',
-              border: 'none',
-              borderRadius: 8,
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: hasBOM ? 'pointer' : 'default',
-            }}
-          >
-            {projectId ? '↑ Update Project' : '+ Save to Project'}
-          </button>
-          {saveMsg && <span style={{ fontSize: 12, color: '#16a34a', fontWeight: 600 }}>{saveMsg}</span>}
-        </div>
-
-        {projectId && (
-          <div style={{ fontSize: 12, color: '#6b7280', textAlign: 'center', marginTop: -8 }}>
-            Saved to: <strong>{projectName}</strong>
-          </div>
-        )}
       </div>
 
       {/* ── RIGHT PANEL ── */}

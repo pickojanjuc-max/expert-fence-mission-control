@@ -5,6 +5,7 @@ import FinishesPanel from "@/components/aluminium-v2/FinishesPanel";
 import BOMPanel from "@/components/aluminium-v2/BOMPanel";
 import TopDownPreview from "@/components/aluminium-v2/TopDownPreview";
 import SaveProjectModal from "@/components/SaveProjectModal";
+import { updateCalculation } from "@/lib/saveCalculation";
 
 export default function CalculatorPage({
   selectedStyle,
@@ -32,6 +33,40 @@ export default function CalculatorPage({
     : null;
   const [selectedRun, setSelectedRun] = useState(0);
   const [rightTab, setRightTab] = useState("preview");
+  const [updating, setUpdating] = useState(false);
+  const [localSaveMsg, setLocalSaveMsg] = useState("");
+
+  const handleDirectUpdate = async () => {
+    if (!projectId) {
+      setShowSaveModal(true);
+      return;
+    }
+    try {
+      setUpdating(true);
+      setLocalSaveMsg("");
+      const state = typeof getCurrentState === "function" ? getCurrentState() : {
+        selectedStyle, colour, mount, shape, runs,
+      };
+      await updateCalculation({
+        projectId,
+        projectName,
+        calculationId,
+        calculatorType: "aluminium",
+        calculatorState: state,
+        bomSnapshot,
+        label: "",
+      });
+      setLocalSaveMsg("Updated ✓");
+      if (typeof onProjectSaved === "function") {
+        onProjectSaved({ projectId, projectName, calculationId });
+      }
+      setTimeout(() => setLocalSaveMsg(""), 2000);
+    } catch (err) {
+      setLocalSaveMsg(`Error: ${err.message}`);
+    } finally {
+      setUpdating(false);
+    }
+  };
 
   // Keep selectedRun in range when runs change
   useEffect(() => {
@@ -63,7 +98,12 @@ export default function CalculatorPage({
     <div className="min-h-screen md:h-screen bg-gray-50 flex flex-col overflow-y-auto md:overflow-hidden">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 px-3 md:px-5 py-3 flex items-center gap-3 flex-shrink-0">
-        <a href="/dashboard" className="text-sm text-blue-600 font-medium hover:underline flex items-center gap-1">← Dashboard</a>
+        <a
+          href={projectId ? `/project/${projectId}` : "/dashboard"}
+          className="text-sm text-blue-600 font-medium hover:underline flex items-center gap-1"
+        >
+          {projectId ? "← Back to Project" : "← Dashboard"}
+        </a>
         <div className="w-7 h-7 bg-cyan-500 rounded-md flex items-center justify-center">
           <span className="text-white text-xs font-black">EF</span>
         </div>
@@ -72,12 +112,15 @@ export default function CalculatorPage({
           {projectName && <span className="text-gray-400 font-normal ml-2">— {projectName}</span>}
         </span>
         <button
-          onClick={() => setShowSaveModal(true)}
-          className="px-3 py-1.5 text-xs font-semibold text-white bg-emerald-500 hover:bg-emerald-600 rounded-md transition-colors"
+          onClick={projectId ? handleDirectUpdate : () => setShowSaveModal(true)}
+          disabled={updating}
+          className="px-3 py-1.5 text-xs font-semibold text-white bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-300 rounded-md transition-colors"
         >
-          Save Project
+          {updating ? "Updating…" : projectId ? "Update Project" : "Save Project"}
         </button>
-        {saveMsg && <span className="text-xs text-emerald-600 font-medium">{saveMsg}</span>}
+        {(localSaveMsg || saveMsg) && (
+          <span className="text-xs text-emerald-600 font-medium">{localSaveMsg || saveMsg}</span>
+        )}
       </header>
 
       {/* 3-column responsive layout */}

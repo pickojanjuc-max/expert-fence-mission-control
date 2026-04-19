@@ -9,6 +9,7 @@ import {
   GLASS_DEFAULTS,
 } from '@/lib/customGlassBuilder';
 import SaveProjectModal from '@/components/SaveProjectModal';
+import { updateCalculation } from '@/lib/saveCalculation';
 
 const SESSION_KEY = 'ef_custom_glass_state';
 
@@ -134,8 +135,11 @@ export default function CustomGlassCalculatorPage() {
 
       {/* Top nav */}
       <header style={{ background: C.white, borderBottom: `1px solid ${C.border}`, padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 12, position: 'sticky', top: 0, zIndex: 10 }}>
-        <a href="/dashboard" style={{ fontSize: 13, color: '#2563eb', textDecoration: 'none', fontWeight: 500 }}>
-          ← Dashboard
+        <a
+          href={projectId ? `/project/${projectId}` : '/dashboard'}
+          style={{ fontSize: 13, color: '#2563eb', textDecoration: 'none', fontWeight: 500 }}
+        >
+          ← {projectId ? (projectName ? `Back to ${projectName}` : 'Back to Project') : 'Dashboard'}
         </a>
         <div style={{ width: 1, height: 16, background: C.border }} />
         <span style={{ fontSize: 13, fontWeight: 600, color: C.text, flex: 1 }}>
@@ -143,10 +147,41 @@ export default function CustomGlassCalculatorPage() {
           {projectName && <span style={{ fontWeight: 400, color: C.muted, marginLeft: 8 }}>— {projectName}</span>}
         </span>
         <button
-          onClick={() => setShowSaveModal(true)}
+          onClick={async () => {
+            if (projectId) {
+              try {
+                const res = await updateCalculation({
+                  projectId, projectName, calculationId,
+                  calculatorType: 'custom-glass',
+                  calculatorState: { jobType, panels },
+                  bomSnapshot: {
+                    consolidated: panelResults.map((pr) => {
+                      const typeShort = (GLASS_TYPE_LABELS[pr.glassType] || pr.glassType || '').split(' ')[0];
+                      const sku = `GLASS-H${pr.heightMM}-W${pr.widthMM}-T${pr.thickness}-${(pr.glassType || 'std').toUpperCase()}-${(pr.shape || 'rect').toUpperCase()}`;
+                      const unitSell = pr.qty > 0 ? pr.lineSell / pr.qty : pr.lineSell;
+                      return {
+                        SKU: sku,
+                        Item: `Glass Panel ${pr.heightMM}×${pr.widthMM}×${pr.thickness}mm (${typeShort}, ${pr.shape})`,
+                        Qty: pr.qty,
+                        'Unit Sell (ex GST)': unitSell,
+                        'Line Sell (ex GST)': pr.lineSell,
+                      };
+                    }),
+                    totals,
+                  },
+                  label: 'Custom Glass',
+                });
+                handleProjectSaved(res);
+              } catch (e) {
+                setSaveMsg('Error: ' + e.message);
+              }
+            } else {
+              setShowSaveModal(true);
+            }
+          }}
           style={{ padding: '6px 14px', fontSize: 12, fontWeight: 600, color: 'white', background: '#10b981', border: 'none', borderRadius: 6, cursor: 'pointer' }}
         >
-          Save Project
+          {projectId ? 'Update Project' : 'Save Project'}
         </button>
         {saveMsg && <span style={{ fontSize: 12, color: '#059669', fontWeight: 600 }}>{saveMsg}</span>}
       </header>
