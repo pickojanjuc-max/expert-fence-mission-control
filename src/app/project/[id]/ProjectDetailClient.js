@@ -3,6 +3,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
+import {
+  CALCULATOR_LABELS as calcTypeLabels,
+  CALCULATOR_ICONS as calcTypeIcons,
+  CALCULATOR_ROUTES as calcTypeRoutes,
+} from '@/lib/calculatorTypes';
 
 // ── Helpers ────────────────────────────────────────────────────────────
 function money(v) { return '$' + Number(v || 0).toFixed(2); }
@@ -18,31 +23,6 @@ function statusColor(s) {
   };
   return map[s] || map.draft;
 }
-
-const calcTypeLabels = {
-  glass: 'Glass Pool Fencing',
-  aluminium: 'Aluminium Fencing',
-  balustrade: 'Glass Balustrade',
-  wire: 'Stainless Wire Balustrade',
-  aire: 'AIRE+ Balustrade',
-  'custom-glass': 'Custom Glass',
-};
-const calcTypeIcons = {
-  glass: '🔷',
-  aluminium: '🔶',
-  balustrade: '🪟',
-  wire: '🧵',
-  aire: '🏛',
-  'custom-glass': '✨',
-};
-const calcTypeRoutes = {
-  glass: '/calculator/glass',
-  aluminium: '/calculator/aluminium',
-  balustrade: '/calculator/balustrade',
-  wire: '/calculator/wire',
-  aire: '/calculator/aire',
-  'custom-glass': '/calculator/custom-glass',
-};
 
 // ── Consolidate BOMs across all calculations ───────────────────────
 function consolidateBoms(calculations) {

@@ -109,8 +109,8 @@ export default function Calculator() {
         .then((data) => {
           if (!data.project) return;
           const p = data.project;
-          // Try to find a glass calculation in the project
-          const calc = p.calculations?.find((c) => c.calculator_type === "glass");
+          // Try to find a balustrade calculation in the project
+          const calc = p.calculations?.find((c) => c.calculator_type === "balustrade");
           const s = calc?.calculator_state || p.calculator_state || {};
           if (s.shape) setShape(s.shape);
           if (s.runCount) setRunCount(s.runCount);

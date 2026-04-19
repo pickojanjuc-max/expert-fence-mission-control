@@ -14,7 +14,9 @@ const CALCS = [
   { label: 'Glass Pool', href: '/calculator/glass', icon: '🔷' },
   { label: 'Aluminium', href: '/calculator/aluminium', icon: '🔶' },
   { label: 'Balustrade', href: '/calculator/balustrade', icon: '🟦' },
+  { label: 'Wire', href: '/calculator/wire', icon: '🔩' },
   { label: 'AIRE+ Slat', href: '/calculator/aire', icon: '🪟' },
+  { label: 'Custom Glass', href: '/calculator/custom-glass', icon: '✨' },
 ];
 
 export default function Sidebar({ email }) {

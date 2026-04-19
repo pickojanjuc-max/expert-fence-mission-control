@@ -4,6 +4,11 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import Sidebar from '@/components/Sidebar';
+import {
+  CALCULATOR_LABELS,
+  CALCULATOR_ICONS,
+  routeForCalculatorType,
+} from '@/lib/calculatorTypes';
 
 export default function DashboardClient({ email, plan }) {
   const router = useRouter();
@@ -461,8 +466,10 @@ export default function DashboardClient({ email, plan }) {
                   complete: { bg: '#d1fae5', text: '#059669' },
                 };
                 const sc = statusColors[p.status] || statusColors.draft;
-                const calcTypeLabels = { glass: 'Glass Pool Fencing', aluminium: 'Aluminium Fencing', balustrade: 'Glass Balustrade', wire: 'Stainless Wire Balustrade', aire: 'AIRE+ Balustrade', 'custom-glass': 'Custom Glass' };
-                const calcTypeIcons = { glass: '🔷', aluminium: '🔶', balustrade: '🟦', wire: '🔩', aire: '🟫', 'custom-glass': '🪟' };
+                // Labels/icons come from the shared registry —
+                // see src/lib/calculatorTypes.js
+                const calcTypeLabels = CALCULATOR_LABELS;
+                const calcTypeIcons = CALCULATOR_ICONS;
 
                 return (
                   <div
@@ -506,8 +513,7 @@ export default function DashboardClient({ email, plan }) {
                           <div
                             key={c.id}
                             onClick={() => {
-                              const routes = { glass: '/calculator/glass', aluminium: '/calculator/aluminium', balustrade: '/calculator/balustrade', wire: '/calculator/wire', aire: '/calculator/aire' };
-                              const path = routes[c.calculator_type] || '/calculator/glass';
+                              const path = routeForCalculatorType(c.calculator_type) || '/calculator/glass';
                               router.push(`${path}?calc=${c.id}`);
                             }}
                             style={{
@@ -538,8 +544,7 @@ export default function DashboardClient({ email, plan }) {
                     {calcs.length === 0 && p.calculator_type && (
                       <div
                         onClick={() => {
-                          const routes = { glass: '/calculator/glass', aluminium: '/calculator/aluminium', balustrade: '/calculator/balustrade', wire: '/calculator/wire', aire: '/calculator/aire' };
-                          const path = routes[p.calculator_type] || '/calculator/glass';
+                          const path = routeForCalculatorType(p.calculator_type) || '/calculator/glass';
                           router.push(`${path}?project=${p.id}`);
                         }}
                         style={{
