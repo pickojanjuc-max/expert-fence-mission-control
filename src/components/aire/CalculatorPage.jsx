@@ -286,7 +286,27 @@ export default function AireCalculator() {
       <header style={{ background: 'white', borderBottom: '1px solid #e5e7eb', padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
         <a href="/dashboard" style={{ fontSize: 13, color: '#2563eb', fontWeight: 500, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>← Dashboard</a>
         <div style={{ width: 1, height: 16, background: '#e5e7eb' }} />
-        <span style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>AIRE+ Balustrade Calculator</span>
+        <span style={{ fontSize: 13, fontWeight: 600, color: '#111827', flex: 1 }}>
+          AIRE+ Balustrade Calculator
+          {projectName && <span style={{ color: '#9ca3af', fontWeight: 400, marginLeft: 8 }}>— {projectName}</span>}
+        </span>
+        {saveMsg && <span style={{ fontSize: 12, color: '#16a34a', fontWeight: 600 }}>{saveMsg}</span>}
+        <button
+          onClick={() => setShowSaveModal(true)}
+          disabled={enrichedBOM.length === 0}
+          style={{
+            padding: '6px 12px',
+            background: enrichedBOM.length > 0 ? '#10b981' : '#d1d5db',
+            color: 'white',
+            border: 'none',
+            borderRadius: 6,
+            fontSize: 12,
+            fontWeight: 600,
+            cursor: enrichedBOM.length > 0 ? 'pointer' : 'default',
+          }}
+        >
+          {projectId ? 'Update Project' : 'Save Project'}
+        </button>
       </header>
     <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', padding: '24px 20px', flex: 1 }}>
 
@@ -519,33 +539,6 @@ export default function AireCalculator() {
           )}
         </div>
 
-        {/* Save Button */}
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <button
-            onClick={() => setShowSaveModal(true)}
-            disabled={enrichedBOM.length === 0}
-            style={{
-              flex: 1,
-              padding: '10px 16px',
-              background: enrichedBOM.length > 0 ? '#2563eb' : '#9ca3af',
-              color: 'white',
-              border: 'none',
-              borderRadius: 8,
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: enrichedBOM.length > 0 ? 'pointer' : 'default',
-            }}
-          >
-            {projectId ? '↑ Update Project' : '+ Save to Project'}
-          </button>
-          {saveMsg && <span style={{ fontSize: 12, color: '#16a34a', fontWeight: 600 }}>{saveMsg}</span>}
-        </div>
-
-        {projectId && (
-          <div style={{ fontSize: 12, color: '#6b7280', textAlign: 'center', marginTop: -8 }}>
-            Saved to: <strong>{projectName}</strong>
-          </div>
-        )}
       </div>
 
       {/* ── RIGHT PANEL — Preview + BOM ── */}
