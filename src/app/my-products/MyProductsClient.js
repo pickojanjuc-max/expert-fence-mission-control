@@ -54,20 +54,25 @@ function csvEscape(v) {
   return s;
 }
 
+// Export matches the on-screen table: Cost | Markup | Sell.
+// Cost = the user's override if set, else the supplier default. This is what
+// they can edit in Excel and re-import. Markup + Sell are derived (read-only
+// columns for context — import ignores them).
 function buildExportCsv(rows, overrides) {
-  const headers = ['SKU', 'Description', 'Category', 'Default Cost', 'Your Cost', 'Your Sell'];
+  const headers = ['SKU', 'Description', 'Category', 'Cost', 'Markup', 'Sell'];
+  const markupPct = `${Math.round((MARKUP - 1) * 100)}%`;
   const lines = [headers.join(',')];
   for (const r of rows) {
     const ov = overrides[r.sku];
-    const yourCost = ov ? Number(ov.cost_price) : '';
-    const yourSell = yourCost !== '' ? Math.round(yourCost * MARKUP * 100) / 100 : '';
+    const cost = ov ? Number(ov.cost_price) : (r.defaultCost || 0);
+    const sell = cost > 0 ? Math.round(cost * MARKUP * 100) / 100 : 0;
     lines.push([
       csvEscape(r.sku),
       csvEscape(r.description),
       csvEscape(r.category),
-      r.defaultCost ? r.defaultCost.toFixed(2) : '',
-      yourCost !== '' ? yourCost.toFixed(2) : '',
-      yourSell !== '' ? yourSell.toFixed(2) : '',
+      cost > 0 ? cost.toFixed(2) : '',
+      markupPct,
+      sell > 0 ? sell.toFixed(2) : '',
     ].join(','));
   }
   return lines.join('\n');
@@ -255,18 +260,27 @@ export default function MyProductsClient({ email }) {
         const sku = String(row.SKU || row.sku || '').trim().toUpperCase();
         if (!sku) { invalid++; continue; }
 
-        const yourCostRaw = (row['Your Cost'] ?? row.your_cost ?? '').toString().trim();
-        if (yourCostRaw === '') { skipped++; continue; }
+        // New column = "Cost". Fall back to legacy "Your Cost" for older exports.
+        const costRaw = (row.Cost ?? row.cost ?? row['Your Cost'] ?? row.your_cost ?? '').toString().trim();
+        if (costRaw === '') { skipped++; continue; }
 
-        const cost = Number(yourCostRaw);
+        const cost = Number(costRaw);
         if (!Number.isFinite(cost) || cost < 0) { invalid++; continue; }
 
         const ref = defaultBySku[sku];
         if (!ref) { unknown++; continue; } // SKU not in current catalog
 
         const existing = overrides[sku];
+        // Skip if value matches the existing override (unchanged row).
         if (existing && Math.abs(Number(existing.cost_price) - cost) < 0.005) {
-          skipped++; // unchanged
+          skipped++;
+          continue;
+        }
+        // Skip if there's no override and the value matches the supplier default.
+        // (Export writes the default into Cost for un-overridden rows, so a plain
+        // round-trip should not create overrides for every SKU.)
+        if (!existing && Math.abs(Number(ref.defaultCost) - cost) < 0.005) {
+          skipped++;
           continue;
         }
 
@@ -358,7 +372,7 @@ export default function MyProductsClient({ email }) {
         <div style={{ padding: '24px 32px', maxWidth: '1100px', margin: '0 auto', width: '100%' }}>
           <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#111827', margin: '0 0 6px 0' }}>My Products</h1>
           <p style={{ fontSize: '14px', color: '#6b7280', margin: '0 0 20px 0' }}>
-            Override default supplier pricing for SKUs you buy at custom rates. Sell prices use a {Math.round((MARKUP - 1) * 100)}% markup. Leave blank to keep the default.
+            Your supplier costs and the sell price clients see (cost × {Math.round((MARKUP - 1) * 100)}% markup). Edit Cost to override the default.
           </p>
 
           {/* Calc selector — single option for now */}
@@ -450,9 +464,9 @@ export default function MyProductsClient({ email }) {
                       <th style={{ ...headerCell, width: 56 }} className="ef-hide-sm">Img</th>
                       <th style={headerCell}>SKU</th>
                       <th style={headerCell} className="ef-hide-sm">Description</th>
-                      <th style={{ ...headerCell, textAlign: 'right' }}>Default cost</th>
-                      <th style={{ ...headerCell, textAlign: 'right', width: 130 }}>Your cost</th>
-                      <th style={{ ...headerCell, textAlign: 'right' }}>Your sell</th>
+                      <th style={{ ...headerCell, textAlign: 'right', width: 130 }}>Cost</th>
+                      <th style={{ ...headerCell, textAlign: 'right', width: 80 }}>Markup</th>
+                      <th style={{ ...headerCell, textAlign: 'right' }}>Sell</th>
                       <th style={{ ...headerCell, width: 90 }}></th>
                     </tr>
                   </thead>
@@ -464,8 +478,12 @@ export default function MyProductsClient({ email }) {
                         ? editVal
                         : (ov ? Number(ov.cost_price).toFixed(2) : '');
                       const liveCost = Number(displayedCost);
-                      const sell = Number.isFinite(liveCost) && liveCost > 0
+                      const hasOwnCost = Number.isFinite(liveCost) && liveCost > 0;
+                      const sell = hasOwnCost
                         ? Math.round(liveCost * MARKUP * 100) / 100
+                        : 0;
+                      const defaultSell = row.defaultCost > 0
+                        ? Math.round(row.defaultCost * MARKUP * 100) / 100
                         : 0;
                       const isOverridden = !!ov;
                       const isDirty = editVal !== undefined && editVal !== (ov ? Number(ov.cost_price).toFixed(2) : '');
@@ -490,9 +508,6 @@ export default function MyProductsClient({ email }) {
                             <div>{row.description}</div>
                             <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{row.category}</div>
                           </td>
-                          <td style={{ padding: '8px 12px', textAlign: 'right', color: '#6b7280', fontVariantNumeric: 'tabular-nums' }}>
-                            {money(row.defaultCost)}
-                          </td>
                           <td style={{ padding: '8px 12px', textAlign: 'right' }}>
                             <input
                               type="number"
@@ -505,8 +520,11 @@ export default function MyProductsClient({ email }) {
                               style={{ ...inputStyle, textAlign: 'right' }}
                             />
                           </td>
-                          <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600, color: sell > 0 ? '#0891b2' : '#9ca3af', fontVariantNumeric: 'tabular-nums' }}>
-                            {money(sell)}
+                          <td style={{ padding: '8px 12px', textAlign: 'right', color: '#6b7280', fontVariantNumeric: 'tabular-nums' }}>
+                            {Math.round((MARKUP - 1) * 100)}%
+                          </td>
+                          <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600, color: '#0891b2', fontVariantNumeric: 'tabular-nums' }}>
+                            {hasOwnCost ? money(sell) : (defaultSell > 0 ? money(defaultSell) : '—')}
                           </td>
                           <td style={{ padding: '8px 12px', textAlign: 'right' }}>
                             {isSaved ? (

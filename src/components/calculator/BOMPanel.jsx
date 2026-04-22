@@ -23,9 +23,12 @@ function money(n) {
   return `$${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-export default function BOMPanel({ runs, finishes, intersectionMap, shape }) {
+// `costMap` prop overrides the defaults when provided (per-tenant pricing).
+// Falls back to COST_MAP so existing call sites keep working unchanged.
+export default function BOMPanel({ runs, finishes, intersectionMap, shape, costMap }) {
   const { rows, consolidated, unsolved, validation = [] } = buildBOM(runs, finishes, intersectionMap, shape);
   const [skuToImage, setSkuToImage] = React.useState({});
+  const cm = costMap || COST_MAP;
 
   React.useEffect(() => {
     let alive = true;
@@ -60,7 +63,7 @@ export default function BOMPanel({ runs, finishes, intersectionMap, shape }) {
   const missingPricing = [];
   const priced = consolidated.map((r) => {
     const key = String(r.sku || "").toUpperCase();
-    const cost = COST_MAP[key];
+    const cost = cm[key];
     const unit = cost?.sell ?? null;
     if (unit == null) missingPricing.push(r.sku);
     const line = unit != null ? unit * (Number(r.qty) || 0) : null;
@@ -93,7 +96,7 @@ export default function BOMPanel({ runs, finishes, intersectionMap, shape }) {
             </thead>
             <tbody>
               {priced.map((r, i) => {
-                const imageUrl = skuToImage[String(r.sku || "").toUpperCase()] || COST_MAP[String(r.sku || "").toUpperCase()]?.img || "";
+                const imageUrl = skuToImage[String(r.sku || "").toUpperCase()] || cm[String(r.sku || "").toUpperCase()]?.img || "";
                 return (
                   <tr key={i} className="border-b border-gray-100">
                     <Td>
