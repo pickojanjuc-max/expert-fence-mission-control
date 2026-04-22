@@ -4,6 +4,10 @@ import { AlertTriangle, DollarSign } from "lucide-react";
 import { buildBOM } from "@/lib/bomBuilder";
 import { COST_MAP } from "@/lib/costData";
 
+// `costMap` prop overrides the defaults when provided (per-tenant pricing).
+// Falls back to COST_MAP so existing code paths that don't pass the prop
+// keep working unchanged.
+
 function parseSimpleCsv(raw) {
   const lines = String(raw || "").trim().split(/\r?\n/);
   if (lines.length < 2) return [];
@@ -23,9 +27,10 @@ function money(n) {
   return `$${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-export default function BOMPanel({ runs, finishes, intersectionMap, shape }) {
+export default function BOMPanel({ runs, finishes, intersectionMap, shape, costMap }) {
   const { rows, consolidated, unsolved, validation = [] } = buildBOM(runs, finishes, intersectionMap, shape, { skuFamily: "balustrade" });
   const [skuToImage, setSkuToImage] = React.useState({});
+  const cm = costMap || COST_MAP;
 
   React.useEffect(() => {
     let alive = true;
@@ -68,7 +73,7 @@ export default function BOMPanel({ runs, finishes, intersectionMap, shape }) {
   const missingPricing = [];
   const priced = consolidated.map((r) => {
     const key = String(r.sku || "").toUpperCase();
-    const cost = COST_MAP[key];
+    const cost = cm[key];
     const unit = cost?.sell ?? null;
     if (unit == null) missingPricing.push(r.sku);
     const line = unit != null ? unit * (Number(r.qty) || 0) : null;
@@ -102,7 +107,7 @@ export default function BOMPanel({ runs, finishes, intersectionMap, shape }) {
             <tbody>
               {priced.map((r, i) => {
                 const key = String(r.sku || "").toUpperCase();
-                const imageUrl = skuToImage[key] || COST_MAP[key]?.img || "";
+                const imageUrl = skuToImage[key] || cm[key]?.img || "";
                 return (
                   <tr key={i} className="border-b border-gray-100">
                     <Td>

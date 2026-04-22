@@ -9,7 +9,7 @@ import RunSetupPanel from "@/components/balustrade/RunSetupPanel";
 import SidesPanel from "@/components/balustrade/SidesPanel";
 import BOMPanel from "@/components/balustrade/BOMPanel";
 import SaveProjectModal from "@/components/SaveProjectModal";
-import { COST_MAP } from "@/lib/costData";
+import { useUserCostMap } from "@/lib/useUserCostMap";
 import { updateCalculation } from "@/lib/saveCalculation";
 
 // ── Session persistence ──────────────────────────────────────────────
@@ -53,6 +53,9 @@ export default function Calculator() {
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
   const [hydrated, setHydrated] = useState(false);
+
+  // Per-tenant cost map: defaults overlaid with this user's saved products.
+  const { costMap } = useUserCostMap("balustrade");
 
   // Restore sessionStorage state after hydration (avoids server/client mismatch)
   useEffect(() => {
@@ -134,7 +137,7 @@ export default function Calculator() {
       const bomResult = buildBOM(runs, finishes, buildIntersectionMap(runCount, shape, sharedCorners), shape, { skuFamily: "balustrade" });
       const enriched = (bomResult.consolidated || []).map((r) => {
         const key = String(r.sku || '').toUpperCase();
-        const cost = COST_MAP[key];
+        const cost = costMap[key];
         const unit = cost?.sell ?? 0;
         const line = Math.round(unit * (Number(r.qty) || 0) * 100) / 100;
         return { ...r, 'Unit Sell (ex GST)': unit, 'Line Sell (ex GST)': line };
@@ -396,7 +399,7 @@ export default function Calculator() {
               </div>
             ) : (
               <div className="p-5">
-                <BOMPanel runs={runs} finishes={finishes} intersectionMap={intersectionMap} shape={shape} />
+                <BOMPanel runs={runs} finishes={finishes} intersectionMap={intersectionMap} shape={shape} costMap={costMap} />
               </div>
             )}
           </div>

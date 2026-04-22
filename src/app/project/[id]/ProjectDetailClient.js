@@ -117,6 +117,8 @@ export default function ProjectDetailClient({ projectId }) {
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [calcDeletingId, setCalcDeletingId] = useState(null);
+  const [scopeEdits, setScopeEdits] = useState({}); // { [calcId]: string }
+  const [scopeSaving, setScopeSaving] = useState({}); // { [calcId]: bool }
 
   // ── Load project ────────────────────────────────────────────────────
   const loadProject = useCallback(async () => {
@@ -216,6 +218,37 @@ export default function ProjectDetailClient({ projectId }) {
     } catch {}
   }
 
+  // ── Save a single calculation's scope_description ───────────────────
+  async function saveScope(calcId, value) {
+    if (!calcId) return;
+    setScopeSaving((s) => ({ ...s, [calcId]: true }));
+    try {
+      const res = await fetch('/api/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          project_id: projectId,
+          calculation_id: calcId,
+          scope_description: value,
+        }),
+      });
+      if (res.ok) {
+        await loadProject();
+        setScopeEdits((s) => {
+          const next = { ...s };
+          delete next[calcId];
+          return next;
+        });
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setSaveMsg('Error: ' + (data.error || 'Failed to save scope'));
+      }
+    } catch (e) {
+      setSaveMsg('Error: ' + e.message);
+    }
+    setScopeSaving((s) => ({ ...s, [calcId]: false }));
+  }
+
   // ── Delete a single Calculation ─────────────────────────────────────
   async function handleDeleteCalc(calcId) {
     if (!calcId) return;
@@ -252,7 +285,10 @@ export default function ProjectDetailClient({ projectId }) {
     setDeleting(false);
   }
 
-  // ── Generate Quote PDF ──────────────────────────────────────────────
+  // ── Generate Client Quote PDF ───────────────────────────────────────
+  // Client-facing: shows scope descriptions per calculation and a
+  // single rolled-up total (materials + markup + labour + consumables).
+  // Does NOT show SKUs, quantities, unit prices, or breakdowns.
   async function generateQuotePdf() {
     try {
       const { jsPDF } = await import('jspdf');
@@ -275,94 +311,68 @@ export default function ProjectDetailClient({ projectId }) {
       if (clientName) { doc.text(`Client: ${clientName}`, left, y); y += 14; }
       if (clientEmail) { doc.text(`Email: ${clientEmail}`, left, y); y += 14; }
       if (clientPhone) { doc.text(`Phone: ${clientPhone}`, left, y); y += 14; }
-      y += 10;
+      y += 14;
 
-      // Calculations included
+      // Scope of works (one paragraph per calc)
       doc.setFont('helvetica', 'bold');
-      doc.text('Scope', left, y);
+      doc.setFontSize(12);
+      doc.text('Scope of Works', left, y);
       y += 14;
       doc.setFont('helvetica', 'normal');
-      calculations.forEach((c) => {
-        const label = c.label || calcTypeLabels[c.calculator_type] || c.calculator_type;
-        doc.text(`• ${label}`, left + 10, y);
-        y += 14;
-      });
-      y += 8;
+      doc.setFontSize(10);
 
-      // Materials table
+      if (calculations.length === 0) {
+        doc.text('No scope recorded.', left, y);
+        y += 14;
+      } else {
+        calculations.forEach((c) => {
+          const fallback = c.label || calcTypeLabels[c.calculator_type] || c.calculator_type;
+          const scope = (c.scope_description && c.scope_description.trim())
+            ? c.scope_description.trim()
+            : fallback;
+          const lines = doc.splitTextToSize(`• ${scope}`, right - left);
+          if (y + lines.length * 13 > 760) { doc.addPage(); y = 42; }
+          doc.text(lines, left, y);
+          y += lines.length * 13 + 4;
+        });
+      }
+
+      y += 10;
+      doc.line(left, y, right, y);
+      y += 18;
+
+      // Single rolled-up total — client sees one number, not a breakdown
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(11);
-      doc.text('Materials', left, y);
-      y += 14;
-      doc.setFontSize(9);
-      doc.text('Item', left, y);
-      doc.text('SKU', 260, y);
-      doc.text('Qty', 380, y, { align: 'right' });
-      doc.text('Unit (ex)', 460, y, { align: 'right' });
-      doc.text('Line (ex)', right, y, { align: 'right' });
+      doc.text('Investment', left, y);
       y += 6;
-      doc.line(left, y, right, y);
-      y += 12;
       doc.setFont('helvetica', 'normal');
-
-      bomItems.forEach((item) => {
-        if (y > 760) { doc.addPage(); y = 42; }
-        doc.text(String(item.name).substring(0, 40), left, y, { maxWidth: 210 });
-        doc.text(String(item.sku || ''), 260, y, { maxWidth: 100 });
-        doc.text(String(item.qty), 380, y, { align: 'right' });
-        doc.text(money(item.unitPrice), 460, y, { align: 'right' });
-        doc.text(money(item.linePrice), right, y, { align: 'right' });
-        y += 14;
-      });
-
-      y += 4;
-      doc.line(left, y, right, y);
-      y += 16;
-
-      // Summary
       doc.setFontSize(10);
       const summaryLeft = 340;
-      doc.text('Materials:', summaryLeft, y);
-      doc.text(money(materialTotal), right, y, { align: 'right' });
-      y += 16;
 
-      if (labourTotal > 0) {
-        doc.text(`Labour (${labourHours}h × ${money(hourlyRate)}/h):`, summaryLeft, y);
-        doc.text(money(labourTotal), right, y, { align: 'right' });
-        y += 16;
-      }
-
-      if (consumablesTotal > 0) {
-        doc.text('Consumables:', summaryLeft, y);
-        doc.text(money(consumablesTotal), right, y, { align: 'right' });
-        y += 16;
-      }
-
-      if (markupPercent > 0) {
-        doc.text(`Markup (${markupPercent}%):`, summaryLeft, y);
-        doc.text(money(markupAmount), right, y, { align: 'right' });
-        y += 16;
-      }
-
-      doc.line(summaryLeft, y, right, y);
-      y += 14;
-      doc.setFont('helvetica', 'bold');
+      y += 12;
       doc.text('Total (ex GST):', summaryLeft, y);
       doc.text(money(totalExGst), right, y, { align: 'right' });
       y += 16;
       doc.text('GST:', summaryLeft, y);
       doc.text(money(gst), right, y, { align: 'right' });
-      y += 16;
-      doc.setFontSize(12);
+      y += 6;
+      doc.line(summaryLeft, y, right, y);
+      y += 14;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(13);
       doc.text('Total (inc GST):', summaryLeft, y);
       doc.text(money(totalIncGst), right, y, { align: 'right' });
-      y += 20;
+      y += 22;
 
       if (notes) {
-        doc.setFontSize(9);
+        if (y > 740) { doc.addPage(); y = 42; }
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Notes', left, y);
+        y += 14;
         doc.setFont('helvetica', 'normal');
-        doc.text('Notes:', left, y);
-        y += 12;
+        doc.setFontSize(9);
         const splitNotes = doc.splitTextToSize(notes, right - left);
         doc.text(splitNotes, left, y);
       }
@@ -569,69 +579,108 @@ export default function ProjectDetailClient({ projectId }) {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {calculations.map((c) => {
                     const bomCount = (c.bom_snapshot?.consolidated || c.bom_snapshot?.bom || []).length;
+                    const scopeVal = scopeEdits[c.id] !== undefined ? scopeEdits[c.id] : (c.scope_description || '');
+                    const scopeDirty = scopeEdits[c.id] !== undefined && scopeEdits[c.id] !== (c.scope_description || '');
                     return (
                       <div
                         key={c.id}
                         style={{
-                          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                           padding: '12px', borderRadius: '6px', border: '1px solid #e5e7eb',
-                          cursor: 'pointer', transition: 'all 0.1s',
                           backgroundColor: '#f9fafb',
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = '#f0fdf4';
-                          e.currentTarget.style.borderColor = '#10b981';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = '#f9fafb';
-                          e.currentTarget.style.borderColor = '#e5e7eb';
+                          display: 'flex', flexDirection: 'column', gap: '8px',
                         }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
-                          <span style={{ fontSize: '16px' }}>{calcTypeIcons[c.calculator_type] || '📐'}</span>
-                          <div>
-                            <div style={{ fontSize: '13px', fontWeight: 600, color: '#111827' }}>
-                              {c.label || calcTypeLabels[c.calculator_type] || c.calculator_type}
-                            </div>
-                            <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>
-                              {bomCount} items · {new Date(c.updated_at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+                            <span style={{ fontSize: '16px' }}>{calcTypeIcons[c.calculator_type] || '📐'}</span>
+                            <div>
+                              <div style={{ fontSize: '13px', fontWeight: 600, color: '#111827' }}>
+                                {c.label || calcTypeLabels[c.calculator_type] || c.calculator_type}
+                              </div>
+                              <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>
+                                {bomCount} items · {new Date(c.updated_at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
+                              </div>
                             </div>
                           </div>
+                          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const path = calcTypeRoutes[c.calculator_type] || '/calculator/aluminium';
+                                router.push(`${path}?calc=${c.id}`);
+                              }}
+                              style={{
+                                padding: '6px 12px', fontSize: '12px', fontWeight: 600,
+                                backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '4px',
+                                cursor: 'pointer', transition: 'background-color 0.1s',
+                              }}
+                              onMouseEnter={(e) => e.target.style.backgroundColor = '#059669'}
+                              onMouseLeave={(e) => e.target.style.backgroundColor = '#10b981'}
+                            >
+                              Open Calculator
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleDeleteCalc(c.id); }}
+                              disabled={calcDeletingId === c.id}
+                              title="Remove from project"
+                              style={{
+                                padding: '6px 9px', fontSize: '13px', fontWeight: 600,
+                                backgroundColor: 'transparent', color: '#dc2626',
+                                border: '1px solid #fecaca', borderRadius: '4px',
+                                cursor: calcDeletingId === c.id ? 'not-allowed' : 'pointer',
+                                opacity: calcDeletingId === c.id ? 0.5 : 1,
+                                lineHeight: 1,
+                              }}
+                              onMouseEnter={(e) => { if (calcDeletingId !== c.id) { e.target.style.backgroundColor = '#fef2f2'; e.target.style.borderColor = '#dc2626'; } }}
+                              onMouseLeave={(e) => { e.target.style.backgroundColor = 'transparent'; e.target.style.borderColor = '#fecaca'; }}
+                            >
+                              🗑
+                            </button>
+                          </div>
                         </div>
-                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const path = calcTypeRoutes[c.calculator_type] || '/calculator/aluminium';
-                              router.push(`${path}?calc=${c.id}`);
-                            }}
+                        <div>
+                          <label style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: '3px' }}>
+                            Scope (shown on client quote)
+                          </label>
+                          <textarea
+                            value={scopeVal}
+                            onChange={(e) => setScopeEdits((s) => ({ ...s, [c.id]: e.target.value }))}
+                            placeholder="Describe what the client sees on the quote — e.g. Supply and install frameless glass balustrading, polished spigots, 25x21 top rail, 12mm clear toughened. Approximately 8m."
+                            rows={2}
                             style={{
-                              padding: '6px 12px', fontSize: '12px', fontWeight: 600,
-                              backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '4px',
-                              cursor: 'pointer', transition: 'background-color 0.1s',
+                              width: '100%', border: '1px solid #e5e7eb', borderRadius: '6px',
+                              padding: '8px 10px', fontSize: '13px', fontFamily: 'inherit',
+                              backgroundColor: '#fff', resize: 'vertical', boxSizing: 'border-box',
+                              lineHeight: 1.4,
                             }}
-                            onMouseEnter={(e) => e.target.style.backgroundColor = '#059669'}
-                            onMouseLeave={(e) => e.target.style.backgroundColor = '#10b981'}
-                          >
-                            Open Calculator
-                          </button>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleDeleteCalc(c.id); }}
-                            disabled={calcDeletingId === c.id}
-                            title="Remove from project"
-                            style={{
-                              padding: '6px 9px', fontSize: '13px', fontWeight: 600,
-                              backgroundColor: 'transparent', color: '#dc2626',
-                              border: '1px solid #fecaca', borderRadius: '4px',
-                              cursor: calcDeletingId === c.id ? 'not-allowed' : 'pointer',
-                              opacity: calcDeletingId === c.id ? 0.5 : 1,
-                              lineHeight: 1,
-                            }}
-                            onMouseEnter={(e) => { if (calcDeletingId !== c.id) { e.target.style.backgroundColor = '#fef2f2'; e.target.style.borderColor = '#dc2626'; } }}
-                            onMouseLeave={(e) => { e.target.style.backgroundColor = 'transparent'; e.target.style.borderColor = '#fecaca'; }}
-                          >
-                            🗑
-                          </button>
+                          />
+                          {scopeDirty && (
+                            <div style={{ display: 'flex', gap: '6px', marginTop: '4px', justifyContent: 'flex-end' }}>
+                              <button
+                                onClick={() => setScopeEdits((s) => { const n = { ...s }; delete n[c.id]; return n; })}
+                                style={{
+                                  padding: '4px 10px', fontSize: '11px', fontWeight: 600,
+                                  backgroundColor: '#f3f4f6', color: '#6b7280',
+                                  border: '1px solid #e5e7eb', borderRadius: '4px', cursor: 'pointer',
+                                }}
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                onClick={() => saveScope(c.id, scopeEdits[c.id])}
+                                disabled={scopeSaving[c.id]}
+                                style={{
+                                  padding: '4px 10px', fontSize: '11px', fontWeight: 600,
+                                  backgroundColor: '#10b981', color: '#fff',
+                                  border: 'none', borderRadius: '4px',
+                                  cursor: scopeSaving[c.id] ? 'not-allowed' : 'pointer',
+                                  opacity: scopeSaving[c.id] ? 0.6 : 1,
+                                }}
+                              >
+                                {scopeSaving[c.id] ? 'Saving…' : 'Save scope'}
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     );

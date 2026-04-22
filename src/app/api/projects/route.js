@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createSupabaseServer } from '@/lib/supabaseServer';
+import { buildDefaultScope } from '@/lib/scopeDescription';
 
 // GET /api/projects — list user's projects with their calculations
 export async function GET() {
@@ -58,6 +59,7 @@ export async function POST(request) {
     calculator_state,
     bom_snapshot,
     label,
+    scope_description, // optional override (e.g. user edited on project page)
     // project-level fields
     status,
     client_id,        // link to clients table
@@ -129,7 +131,12 @@ export async function POST(request) {
     };
 
     if (calculation_id) {
-      // Update existing calculation
+      // Update existing calculation — only overwrite scope_description
+      // if the caller explicitly supplied one (so user edits aren't blown
+      // away when the calculator re-saves).
+      if (scope_description !== undefined) {
+        calcRow.scope_description = scope_description || null;
+      }
       const { data, error } = await supabase
         .from('project_calculations')
         .update(calcRow)
@@ -139,7 +146,11 @@ export async function POST(request) {
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
       calculation = data;
     } else {
-      // Insert new calculation
+      // Insert new calculation — populate scope_description with a
+      // default unless the caller passed one in.
+      const defaultScope = buildDefaultScope(calculator_type, calculator_state, label);
+      calcRow.scope_description =
+        scope_description !== undefined ? (scope_description || null) : (defaultScope || null);
       const { data, error } = await supabase
         .from('project_calculations')
         .insert(calcRow)
@@ -148,6 +159,19 @@ export async function POST(request) {
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
       calculation = data;
     }
+  } else if (calculation_id && scope_description !== undefined) {
+    // Scope-only update for an existing calc (no calculator state changes)
+    const { data, error } = await supabase
+      .from('project_calculations')
+      .update({
+        scope_description: scope_description || null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', calculation_id)
+      .select()
+      .single();
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    calculation = data;
   }
 
   // Return full project with all calculations
