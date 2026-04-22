@@ -8,6 +8,7 @@ const NAV = [
   { label: 'Dashboard', href: '/dashboard', icon: '⊞' },
   { label: 'Projects', href: '/projects', icon: '📋' },
   { label: 'Schedule', href: '/schedule', icon: '📅' },
+  { label: 'My Products', href: '/my-products', icon: '🏷️' },
 ];
 
 const CALCS = [
