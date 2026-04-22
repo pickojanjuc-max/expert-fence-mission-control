@@ -16,7 +16,7 @@
 //     calculator page picks up the override on its next load.
 // ─────────────────────────────────────────────────────────────────────
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Sidebar from '@/components/Sidebar';
 
 const MARKUP = 1.4; // keep in sync with costData.js + useUserCostMap.js
@@ -47,6 +47,77 @@ function money(n) {
   return `$${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+// CSV escape: wrap in quotes if value contains comma/quote/newline; double inner quotes
+function csvEscape(v) {
+  const s = v == null ? '' : String(v);
+  if (/[",\r\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
+function buildExportCsv(rows, overrides) {
+  const headers = ['SKU', 'Description', 'Category', 'Default Cost', 'Your Cost', 'Your Sell'];
+  const lines = [headers.join(',')];
+  for (const r of rows) {
+    const ov = overrides[r.sku];
+    const yourCost = ov ? Number(ov.cost_price) : '';
+    const yourSell = yourCost !== '' ? Math.round(yourCost * MARKUP * 100) / 100 : '';
+    lines.push([
+      csvEscape(r.sku),
+      csvEscape(r.description),
+      csvEscape(r.category),
+      r.defaultCost ? r.defaultCost.toFixed(2) : '',
+      yourCost !== '' ? yourCost.toFixed(2) : '',
+      yourSell !== '' ? yourSell.toFixed(2) : '',
+    ].join(','));
+  }
+  return lines.join('\n');
+}
+
+// Parse a CSV (handles quoted fields with commas/escaped quotes).
+// Returns array of objects keyed by header.
+function parseCsvFull(raw) {
+  const text = String(raw || '').replace(/\r\n?/g, '\n').trim();
+  if (!text) return [];
+  const rows = [];
+  let cur = [];
+  let field = '';
+  let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQuotes) {
+      if (c === '"' && text[i + 1] === '"') { field += '"'; i++; }
+      else if (c === '"') { inQuotes = false; }
+      else { field += c; }
+    } else {
+      if (c === '"') { inQuotes = true; }
+      else if (c === ',') { cur.push(field); field = ''; }
+      else if (c === '\n') { cur.push(field); rows.push(cur); cur = []; field = ''; }
+      else { field += c; }
+    }
+  }
+  cur.push(field);
+  if (cur.length > 1 || cur[0] !== '') rows.push(cur);
+  if (rows.length < 2) return [];
+  const headers = rows[0].map((h) => h.trim());
+  return rows.slice(1).map((cells) => {
+    const obj = {};
+    headers.forEach((h, i) => { obj[h] = (cells[i] || '').trim(); });
+    return obj;
+  });
+}
+
+function downloadFile(filename, text, mime = 'text/csv') {
+  const blob = new Blob([text], { type: `${mime};charset=utf-8;` });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 export default function MyProductsClient({ email }) {
   const [calculator] = useState('balustrade'); // single-calc v1, picker comes later
   const [defaults, setDefaults] = useState([]); // [{sku, description, category, defaultCost, image_url}]
@@ -57,55 +128,56 @@ export default function MyProductsClient({ email }) {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [importing, setImporting] = useState(false);
+  const [importMessage, setImportMessage] = useState('');
+  const fileInputRef = useRef(null);
 
-  useEffect(() => {
-    let alive = true;
-    async function load() {
-      try {
-        const csvTexts = await Promise.all(
-          BALUSTRADE_SOURCES.map((s) =>
-            fetch(s.url).then((r) => (r.ok ? r.text() : '')).then((t) => ({ ...s, text: t }))
-          )
-        );
-        const seen = {};
-        const all = [];
-        for (const { text, category } of csvTexts) {
-          for (const row of parseCsv(text)) {
-            const sku = String(row.sku || '').toUpperCase();
-            if (!sku || seen[sku]) continue;
-            seen[sku] = true;
-            all.push({
-              sku,
-              description: row.description || '',
-              category,
-              defaultCost: Number(row.price_aud_ex_gst) || 0,
-              image_url: row.image_url || '',
-            });
-          }
-        }
-        all.sort((a, b) => a.sku.localeCompare(b.sku));
-
-        const productsRes = await fetch(`/api/products?calculator_type=${calculator}`);
-        const productsData = await productsRes.json();
-        const overrideMap = {};
-        for (const p of productsData.products || []) {
-          overrideMap[String(p.slot_key).toUpperCase()] = p;
-        }
-
-        if (!alive) return;
-        setDefaults(all);
-        setOverrides(overrideMap);
-        setLoading(false);
-      } catch (e) {
-        if (alive) {
-          setError(e.message || 'Failed to load products');
-          setLoading(false);
+  const reload = useCallback(async () => {
+    try {
+      const csvTexts = await Promise.all(
+        BALUSTRADE_SOURCES.map((s) =>
+          fetch(s.url).then((r) => (r.ok ? r.text() : '')).then((t) => ({ ...s, text: t }))
+        )
+      );
+      const seen = {};
+      const all = [];
+      for (const { text, category } of csvTexts) {
+        for (const row of parseCsv(text)) {
+          const sku = String(row.sku || '').toUpperCase();
+          if (!sku || seen[sku]) continue;
+          seen[sku] = true;
+          all.push({
+            sku,
+            description: row.description || '',
+            category,
+            defaultCost: Number(row.price_aud_ex_gst) || 0,
+            image_url: row.image_url || '',
+          });
         }
       }
+      all.sort((a, b) => a.sku.localeCompare(b.sku));
+
+      const productsRes = await fetch(`/api/products?calculator_type=${calculator}`);
+      const productsData = await productsRes.json();
+      const overrideMap = {};
+      for (const p of productsData.products || []) {
+        overrideMap[String(p.slot_key).toUpperCase()] = p;
+      }
+
+      setDefaults(all);
+      setOverrides(overrideMap);
+      setLoading(false);
+      return { defaults: all, overrides: overrideMap };
+    } catch (e) {
+      setError(e.message || 'Failed to load products');
+      setLoading(false);
+      return null;
     }
-    load();
-    return () => { alive = false; };
   }, [calculator]);
+
+  useEffect(() => {
+    reload();
+  }, [reload]);
 
   const rows = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -152,6 +224,86 @@ export default function MyProductsClient({ email }) {
       setError(`${row.sku}: ${e.message}`);
     }
     setSavingSku(null);
+  }
+
+  function handleExport() {
+    const csv = buildExportCsv(defaults, overrides);
+    const today = new Date().toISOString().slice(0, 10);
+    downloadFile(`${calculator}-products-${today}.csv`, csv);
+  }
+
+  async function handleImportFile(file) {
+    if (!file) return;
+    setImporting(true);
+    setImportMessage('');
+    setError('');
+    try {
+      const text = await file.text();
+      const parsed = parseCsvFull(text);
+      if (parsed.length === 0) throw new Error('CSV is empty or has no header row.');
+
+      // Build SKU → default-cost lookup so we can detect "no real change" rows
+      const defaultBySku = {};
+      for (const r of defaults) defaultBySku[r.sku] = r;
+
+      const toUpsert = [];
+      let skipped = 0;
+      let invalid = 0;
+      let unknown = 0;
+
+      for (const row of parsed) {
+        const sku = String(row.SKU || row.sku || '').trim().toUpperCase();
+        if (!sku) { invalid++; continue; }
+
+        const yourCostRaw = (row['Your Cost'] ?? row.your_cost ?? '').toString().trim();
+        if (yourCostRaw === '') { skipped++; continue; }
+
+        const cost = Number(yourCostRaw);
+        if (!Number.isFinite(cost) || cost < 0) { invalid++; continue; }
+
+        const ref = defaultBySku[sku];
+        if (!ref) { unknown++; continue; } // SKU not in current catalog
+
+        const existing = overrides[sku];
+        if (existing && Math.abs(Number(existing.cost_price) - cost) < 0.005) {
+          skipped++; // unchanged
+          continue;
+        }
+
+        toUpsert.push({
+          slot_key: sku,
+          cost_price: cost,
+          category: ref.category,
+          display_name: ref.description,
+          image_url: ref.image_url || null,
+        });
+      }
+
+      if (toUpsert.length === 0) {
+        setImportMessage(`Nothing to update — ${skipped} unchanged, ${invalid} invalid, ${unknown} unknown SKU(s).`);
+        setImporting(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        return;
+      }
+
+      const res = await fetch('/api/products/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ calculator_type: calculator, products: toUpsert }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Bulk save failed');
+
+      await reload();
+      setEdits({}); // clear any in-flight edits since data is fresh
+      setImportMessage(
+        `Imported ${data.upserted} row(s). Skipped ${skipped} unchanged, ${invalid} invalid, ${unknown} unknown.`
+      );
+    } catch (e) {
+      setError(`Import failed: ${e.message}`);
+    }
+    setImporting(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   }
 
   // Styles
@@ -222,18 +374,58 @@ export default function MyProductsClient({ email }) {
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12 }}>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
             <input
               type="text"
               placeholder="Search SKU, description, or category…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              style={{ ...inputStyle, maxWidth: 360 }}
+              style={{ ...inputStyle, maxWidth: 360, flex: '1 1 240px' }}
             />
-            <div style={{ fontSize: 12, color: '#6b7280' }}>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={handleExport}
+                disabled={loading || defaults.length === 0}
+                style={{
+                  ...buttonStyle,
+                  background: 'white',
+                  color: '#374151',
+                  border: '1px solid #d1d5db',
+                  opacity: loading || defaults.length === 0 ? 0.5 : 1,
+                }}
+                title="Download all SKUs and your overrides as a CSV you can edit in Excel"
+              >
+                ⬇ Export CSV
+              </button>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={importing || loading}
+                style={{
+                  ...buttonStyle,
+                  opacity: importing || loading ? 0.5 : 1,
+                }}
+                title="Upload an edited CSV to bulk-update your prices"
+              >
+                {importing ? 'Importing…' : '⬆ Import CSV'}
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv,text/csv"
+                style={{ display: 'none' }}
+                onChange={(e) => handleImportFile(e.target.files?.[0])}
+              />
+            </div>
+            <div style={{ fontSize: 12, color: '#6b7280', flex: '1 1 100%' }}>
               {rows.length} of {defaults.length} SKUs · {Object.keys(overrides).length} overridden
             </div>
           </div>
+
+          {importMessage && (
+            <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#065f46', padding: '10px 12px', borderRadius: 6, fontSize: 13, marginBottom: 12 }}>
+              {importMessage}
+            </div>
+          )}
 
           {error && (
             <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', padding: '10px 12px', borderRadius: 6, fontSize: 13, marginBottom: 12 }}>
