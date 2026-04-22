@@ -24,7 +24,7 @@ export async function GET(request) {
 
   let q = supabase
     .from('products')
-    .select('id, calculator_type, slot_key, category, display_name, supplier_name, supplier_sku, cost_price, unit, dimensions, image_url, active')
+    .select('id, calculator_type, slot_key, category, display_name, supplier_name, supplier_sku, cost_price, markup_pct, unit, dimensions, image_url, active')
     .eq('user_id', user.id)
     .eq('active', true);
 
@@ -50,6 +50,7 @@ export async function POST(request) {
     supplier_name,
     supplier_sku,
     cost_price,
+    markup_pct,
     unit,
     dimensions,
     image_url,
@@ -61,6 +62,17 @@ export async function POST(request) {
     return NextResponse.json({ error: 'calculator_type and slot_key required' }, { status: 400 });
   }
 
+  // markup_pct is OPTIONAL. null/undefined = "use the user default for this calc".
+  // A number stored here overrides the default for this SKU only.
+  let markupPctToSave = null;
+  if (markup_pct !== undefined && markup_pct !== null && markup_pct !== '') {
+    const m = Number(markup_pct);
+    if (!Number.isFinite(m) || m < 0 || m > 1000) {
+      return NextResponse.json({ error: 'markup_pct must be between 0 and 1000' }, { status: 400 });
+    }
+    markupPctToSave = m;
+  }
+
   const row = {
     user_id: user.id,
     calculator_type,
@@ -70,6 +82,7 @@ export async function POST(request) {
     supplier_name: supplier_name ?? '',
     supplier_sku: supplier_sku ?? '',
     cost_price: Number(cost_price) || 0,
+    markup_pct: markupPctToSave,
     unit: unit || 'each',
     dimensions: dimensions || {},
     image_url: image_url || null,

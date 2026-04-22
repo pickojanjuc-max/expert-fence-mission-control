@@ -3,23 +3,25 @@
 // ─────────────────────────────────────────────────────────────────────
 // MyProductsClient
 //
-// Lets a tenant override default supplier pricing on a per-SKU basis.
+// Lets a tenant override default supplier pricing AND markup on a
+// per-SKU basis, with a bulk "default markup" per calculator.
+//
 // v1: Balustrade only — sources the canonical SKU list from the same
 // CSVs that BOMPanel uses (/data/balustrade/*.csv).
 //
-// Behaviour:
-//   - Loads the master SKU list (CSVs) + the user's saved overrides
-//     (GET /api/products?calculator_type=balustrade) on mount.
-//   - Each row shows the supplier price + an editable "Your cost" input.
-//   - "Your sell" is computed live (cost × MARKUP).
-//   - Save POSTs one row at a time to /api/products. The hook on the
-//     calculator page picks up the override on its next load.
+// Resolution order for the markup applied to each SKU:
+//   1. The per-row markup_pct (if the user has saved one)
+//   2. The user's default markup for this calculator (/api/settings)
+//   3. FALLBACK_MARKUP_PCT (40) — what the app shipped with
+//
+// This file mirrors useUserCostMap so what shows here matches what
+// the calculator/BOM displays for the customer.
 // ─────────────────────────────────────────────────────────────────────
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Sidebar from '@/components/Sidebar';
 
-const MARKUP = 1.4; // keep in sync with costData.js + useUserCostMap.js
+const FALLBACK_MARKUP_PCT = 40; // mirrors useUserCostMap.js + costData.js
 
 const BALUSTRADE_SOURCES = [
   { url: '/data/balustrade/spigots.csv', category: 'Spigot' },
@@ -47,6 +49,13 @@ function money(n) {
   return `$${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+function sellFrom(cost, markupPct) {
+  const c = Number(cost);
+  const m = Number(markupPct);
+  if (!Number.isFinite(c) || c <= 0 || !Number.isFinite(m)) return 0;
+  return Math.round(c * (1 + m / 100) * 100) / 100;
+}
+
 // CSV escape: wrap in quotes if value contains comma/quote/newline; double inner quotes
 function csvEscape(v) {
   const s = v == null ? '' : String(v);
@@ -55,23 +64,23 @@ function csvEscape(v) {
 }
 
 // Export matches the on-screen table: Cost | Markup | Sell.
-// Cost = the user's override if set, else the supplier default. This is what
-// they can edit in Excel and re-import. Markup + Sell are derived (read-only
-// columns for context — import ignores them).
-function buildExportCsv(rows, overrides) {
-  const headers = ['SKU', 'Description', 'Category', 'Cost', 'Markup', 'Sell'];
-  const markupPct = `${Math.round((MARKUP - 1) * 100)}%`;
+// Cost   = the user's override if set, else the supplier default.
+// Markup = the user's per-SKU override if set, else the default for this calc.
+// Sell   = derived (read-only). Import ignores the Sell column.
+function buildExportCsv(rows, overrides, defaultMarkupPct) {
+  const headers = ['SKU', 'Description', 'Category', 'Cost', 'Markup %', 'Sell'];
   const lines = [headers.join(',')];
   for (const r of rows) {
     const ov = overrides[r.sku];
     const cost = ov ? Number(ov.cost_price) : (r.defaultCost || 0);
-    const sell = cost > 0 ? Math.round(cost * MARKUP * 100) / 100 : 0;
+    const markupPct = ov && ov.markup_pct != null ? Number(ov.markup_pct) : defaultMarkupPct;
+    const sell = sellFrom(cost, markupPct);
     lines.push([
       csvEscape(r.sku),
       csvEscape(r.description),
       csvEscape(r.category),
       cost > 0 ? cost.toFixed(2) : '',
-      markupPct,
+      Number.isFinite(markupPct) ? markupPct.toString() : '',
       sell > 0 ? sell.toFixed(2) : '',
     ].join(','));
   }
@@ -79,7 +88,6 @@ function buildExportCsv(rows, overrides) {
 }
 
 // Parse a CSV (handles quoted fields with commas/escaped quotes).
-// Returns array of objects keyed by header.
 function parseCsvFull(raw) {
   const text = String(raw || '').replace(/\r\n?/g, '\n').trim();
   if (!text) return [];
@@ -123,13 +131,27 @@ function downloadFile(filename, text, mime = 'text/csv') {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+// Strip "%" / whitespace from a CSV markup cell, return Number or NaN.
+function parseMarkupCell(raw) {
+  const s = String(raw ?? '').trim().replace(/%$/, '').trim();
+  if (s === '') return NaN;
+  return Number(s);
+}
+
 export default function MyProductsClient({ email }) {
   const [calculator] = useState('balustrade'); // single-calc v1, picker comes later
   const [defaults, setDefaults] = useState([]); // [{sku, description, category, defaultCost, image_url}]
-  const [overrides, setOverrides] = useState({}); // { SKU: { cost_price, id, display_name } }
-  const [edits, setEdits] = useState({}); // { SKU: '99.99' | '' }
+  const [overrides, setOverrides] = useState({}); // { SKU: { cost_price, markup_pct, id, ... } }
+  const [defaultMarkupPct, setDefaultMarkupPct] = useState(FALLBACK_MARKUP_PCT);
+  const [defaultMarkupEdit, setDefaultMarkupEdit] = useState(''); // string in the input
+  const [savingDefaultMarkup, setSavingDefaultMarkup] = useState(false);
+  const [defaultMarkupSaved, setDefaultMarkupSaved] = useState(false);
+
+  const [costEdits, setCostEdits] = useState({});       // { SKU: '99.99' }
+  const [markupEdits, setMarkupEdits] = useState({});   // { SKU: '50' }
   const [savingSku, setSavingSku] = useState(null);
   const [savedSku, setSavedSku] = useState(null);
+
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -162,17 +184,23 @@ export default function MyProductsClient({ email }) {
       }
       all.sort((a, b) => a.sku.localeCompare(b.sku));
 
-      const productsRes = await fetch(`/api/products?calculator_type=${calculator}`);
-      const productsData = await productsRes.json();
+      const [productsData, settingsData] = await Promise.all([
+        fetch(`/api/products?calculator_type=${calculator}`).then((r) => r.json()),
+        fetch(`/api/settings?calculator_type=${calculator}`).then((r) => r.json()),
+      ]);
       const overrideMap = {};
       for (const p of productsData.products || []) {
         overrideMap[String(p.slot_key).toUpperCase()] = p;
       }
+      const fetchedDefault = Number(settingsData?.settings?.default_markup_pct);
+      const safeDefault = Number.isFinite(fetchedDefault) ? fetchedDefault : FALLBACK_MARKUP_PCT;
 
       setDefaults(all);
       setOverrides(overrideMap);
+      setDefaultMarkupPct(safeDefault);
+      setDefaultMarkupEdit(String(safeDefault));
       setLoading(false);
-      return { defaults: all, overrides: overrideMap };
+      return { defaults: all, overrides: overrideMap, defaultMarkupPct: safeDefault };
     } catch (e) {
       setError(e.message || 'Failed to load products');
       setLoading(false);
@@ -195,14 +223,72 @@ export default function MyProductsClient({ email }) {
     );
   }, [defaults, search]);
 
-  async function saveOne(row) {
-    const raw = (edits[row.sku] ?? '').toString().trim();
-    if (raw === '') return; // nothing to save
-    const cost = Number(raw);
-    if (!Number.isFinite(cost) || cost < 0) {
-      setError(`Invalid price for ${row.sku}`);
+  async function saveDefaultMarkup() {
+    const pct = Number(defaultMarkupEdit);
+    if (!Number.isFinite(pct) || pct < 0 || pct > 1000) {
+      setError('Default markup must be between 0 and 1000.');
       return;
     }
+    setSavingDefaultMarkup(true);
+    setError('');
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ calculator_type: calculator, default_markup_pct: pct }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Save failed');
+      setDefaultMarkupPct(pct);
+      setDefaultMarkupSaved(true);
+      setTimeout(() => setDefaultMarkupSaved(false), 1500);
+    } catch (e) {
+      setError(e.message);
+    }
+    setSavingDefaultMarkup(false);
+  }
+
+  async function saveOne(row) {
+    // Resolve what's actually being saved. For each field: if the user typed
+    // something, use that. Otherwise fall back to the existing override (so
+    // saving cost-only doesn't blow away an existing markup override).
+    const ov = overrides[row.sku];
+
+    const costRaw = (costEdits[row.sku] ?? '').toString().trim();
+    let costToSave;
+    if (costRaw !== '') {
+      const c = Number(costRaw);
+      if (!Number.isFinite(c) || c < 0) {
+        setError(`Invalid cost for ${row.sku}`);
+        return;
+      }
+      costToSave = c;
+    } else if (ov) {
+      costToSave = Number(ov.cost_price);
+    } else {
+      // No user input and no existing override → still no real change.
+      // But the user may have only edited markup. Use the supplier default
+      // as the cost so we have a complete row to upsert.
+      costToSave = Number(row.defaultCost) || 0;
+    }
+
+    const markupRaw = (markupEdits[row.sku] ?? '').toString().trim();
+    let markupToSave; // null = inherit user default
+    if (markupRaw !== '') {
+      const m = Number(markupRaw);
+      if (!Number.isFinite(m) || m < 0 || m > 1000) {
+        setError(`Invalid markup for ${row.sku} (0-1000)`);
+        return;
+      }
+      // If user typed exactly the current default, store NULL so they
+      // automatically inherit future default changes.
+      markupToSave = Math.abs(m - defaultMarkupPct) < 0.005 ? null : m;
+    } else if (ov && ov.markup_pct != null) {
+      markupToSave = Number(ov.markup_pct);
+    } else {
+      markupToSave = null;
+    }
+
     setSavingSku(row.sku);
     setError('');
     try {
@@ -214,7 +300,8 @@ export default function MyProductsClient({ email }) {
           slot_key: row.sku,
           category: row.category,
           display_name: row.description,
-          cost_price: cost,
+          cost_price: costToSave,
+          markup_pct: markupToSave,
           unit: 'each',
           image_url: row.image_url || null,
         }),
@@ -222,7 +309,8 @@ export default function MyProductsClient({ email }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Save failed');
       setOverrides((prev) => ({ ...prev, [row.sku]: data.product }));
-      setEdits((prev) => { const n = { ...prev }; delete n[row.sku]; return n; });
+      setCostEdits((prev) => { const n = { ...prev }; delete n[row.sku]; return n; });
+      setMarkupEdits((prev) => { const n = { ...prev }; delete n[row.sku]; return n; });
       setSavedSku(row.sku);
       setTimeout(() => setSavedSku((s) => (s === row.sku ? null : s)), 1500);
     } catch (e) {
@@ -232,7 +320,7 @@ export default function MyProductsClient({ email }) {
   }
 
   function handleExport() {
-    const csv = buildExportCsv(defaults, overrides);
+    const csv = buildExportCsv(defaults, overrides, defaultMarkupPct);
     const today = new Date().toISOString().slice(0, 10);
     downloadFile(`${calculator}-products-${today}.csv`, csv);
   }
@@ -247,7 +335,6 @@ export default function MyProductsClient({ email }) {
       const parsed = parseCsvFull(text);
       if (parsed.length === 0) throw new Error('CSV is empty or has no header row.');
 
-      // Build SKU → default-cost lookup so we can detect "no real change" rows
       const defaultBySku = {};
       for (const r of defaults) defaultBySku[r.sku] = r;
 
@@ -260,26 +347,50 @@ export default function MyProductsClient({ email }) {
         const sku = String(row.SKU || row.sku || '').trim().toUpperCase();
         if (!sku) { invalid++; continue; }
 
-        // New column = "Cost". Fall back to legacy "Your Cost" for older exports.
+        // Cost: new column = "Cost". Backwards-compat for old "Your Cost" exports.
         const costRaw = (row.Cost ?? row.cost ?? row['Your Cost'] ?? row.your_cost ?? '').toString().trim();
-        if (costRaw === '') { skipped++; continue; }
+        // Markup: accept "Markup %", "Markup", or "markup_pct".
+        const markupRaw = (row['Markup %'] ?? row.Markup ?? row.markup ?? row.markup_pct ?? '').toString().trim();
 
-        const cost = Number(costRaw);
-        if (!Number.isFinite(cost) || cost < 0) { invalid++; continue; }
+        // Both blank → skip the row entirely.
+        if (costRaw === '' && markupRaw === '') { skipped++; continue; }
 
         const ref = defaultBySku[sku];
-        if (!ref) { unknown++; continue; } // SKU not in current catalog
-
+        if (!ref) { unknown++; continue; }
         const existing = overrides[sku];
-        // Skip if value matches the existing override (unchanged row).
-        if (existing && Math.abs(Number(existing.cost_price) - cost) < 0.005) {
-          skipped++;
-          continue;
+
+        // Resolve effective cost.
+        let cost;
+        if (costRaw !== '') {
+          const c = Number(costRaw);
+          if (!Number.isFinite(c) || c < 0) { invalid++; continue; }
+          cost = c;
+        } else {
+          cost = existing ? Number(existing.cost_price) : Number(ref.defaultCost) || 0;
         }
-        // Skip if there's no override and the value matches the supplier default.
-        // (Export writes the default into Cost for un-overridden rows, so a plain
-        // round-trip should not create overrides for every SKU.)
-        if (!existing && Math.abs(Number(ref.defaultCost) - cost) < 0.005) {
+
+        // Resolve effective markup (null = inherit default).
+        let markup;
+        if (markupRaw !== '') {
+          const m = parseMarkupCell(markupRaw);
+          if (!Number.isFinite(m) || m < 0 || m > 1000) { invalid++; continue; }
+          markup = Math.abs(m - defaultMarkupPct) < 0.005 ? null : m;
+        } else {
+          markup = existing && existing.markup_pct != null ? Number(existing.markup_pct) : null;
+        }
+
+        // No-op detection: if both cost and markup match what's already there
+        // (or the supplier default for un-overridden rows), skip.
+        const existingCost = existing ? Number(existing.cost_price) : Number(ref.defaultCost) || 0;
+        const existingMarkup = existing && existing.markup_pct != null ? Number(existing.markup_pct) : null;
+        const costSame = Math.abs(existingCost - cost) < 0.005;
+        const markupSame = (existingMarkup === null && markup === null)
+          || (existingMarkup !== null && markup !== null && Math.abs(existingMarkup - markup) < 0.005);
+        const noOverrideExists = !existing;
+        const matchesSupplierDefault = noOverrideExists
+          && Math.abs(Number(ref.defaultCost) - cost) < 0.005
+          && markup === null;
+        if ((existing && costSame && markupSame) || matchesSupplierDefault) {
           skipped++;
           continue;
         }
@@ -287,6 +398,7 @@ export default function MyProductsClient({ email }) {
         toUpsert.push({
           slot_key: sku,
           cost_price: cost,
+          markup_pct: markup,
           category: ref.category,
           display_name: ref.description,
           image_url: ref.image_url || null,
@@ -309,7 +421,8 @@ export default function MyProductsClient({ email }) {
       if (!res.ok) throw new Error(data.error || 'Bulk save failed');
 
       await reload();
-      setEdits({}); // clear any in-flight edits since data is fresh
+      setCostEdits({});
+      setMarkupEdits({});
       setImportMessage(
         `Imported ${data.upserted} row(s). Skipped ${skipped} unchanged, ${invalid} invalid, ${unknown} unknown.`
       );
@@ -357,6 +470,9 @@ export default function MyProductsClient({ email }) {
     top: 0,
   };
 
+  const defaultMarkupDirty = Number(defaultMarkupEdit) !== defaultMarkupPct
+    && defaultMarkupEdit !== '';
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       <style>{`
@@ -372,7 +488,7 @@ export default function MyProductsClient({ email }) {
         <div style={{ padding: '24px 32px', maxWidth: '1100px', margin: '0 auto', width: '100%' }}>
           <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#111827', margin: '0 0 6px 0' }}>My Products</h1>
           <p style={{ fontSize: '14px', color: '#6b7280', margin: '0 0 20px 0' }}>
-            Your supplier costs and the sell price clients see (cost × {Math.round((MARKUP - 1) * 100)}% markup). Edit Cost to override the default.
+            Set your supplier costs and the markup applied to each SKU. Sell prices = cost × (1 + markup%).
           </p>
 
           {/* Calc selector — single option for now */}
@@ -385,6 +501,59 @@ export default function MyProductsClient({ email }) {
             </div>
             <div style={{ padding: '10px 18px', fontSize: 14, fontWeight: 500, color: '#9ca3af' }}>
               Wire <span style={{ fontSize: 11, color: '#9ca3af' }}>(coming soon)</span>
+            </div>
+          </div>
+
+          {/* Bulk default markup */}
+          <div style={{
+            background: 'white',
+            border: '1px solid #e5e7eb',
+            borderRadius: 8,
+            padding: '14px 16px',
+            marginBottom: 16,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            flexWrap: 'wrap',
+          }}>
+            <div style={{ flex: '1 1 320px', minWidth: 240 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#111827', marginBottom: 2 }}>Default markup for {calculator}</div>
+              <div style={{ fontSize: 12, color: '#6b7280' }}>
+                Applied to every SKU unless you override it on the row below.
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="number"
+                  step="1"
+                  min="0"
+                  max="1000"
+                  value={defaultMarkupEdit}
+                  onChange={(e) => setDefaultMarkupEdit(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') saveDefaultMarkup(); }}
+                  style={{ ...inputStyle, width: 100, paddingRight: 24, textAlign: 'right' }}
+                />
+                <span style={{
+                  position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                  color: '#6b7280', fontSize: 13, pointerEvents: 'none',
+                }}>%</span>
+              </div>
+              {defaultMarkupSaved ? (
+                <span style={{ fontSize: 12, color: '#059669', fontWeight: 600 }}>Saved ✓</span>
+              ) : (
+                <button
+                  onClick={saveDefaultMarkup}
+                  disabled={!defaultMarkupDirty || savingDefaultMarkup}
+                  style={{
+                    ...buttonStyle,
+                    opacity: !defaultMarkupDirty || savingDefaultMarkup ? 0.4 : 1,
+                    cursor: !defaultMarkupDirty || savingDefaultMarkup ? 'default' : 'pointer',
+                  }}
+                >
+                  {savingDefaultMarkup ? 'Saving…' : 'Save default'}
+                </button>
+              )}
             </div>
           </div>
 
@@ -465,7 +634,7 @@ export default function MyProductsClient({ email }) {
                       <th style={headerCell}>SKU</th>
                       <th style={headerCell} className="ef-hide-sm">Description</th>
                       <th style={{ ...headerCell, textAlign: 'right', width: 130 }}>Cost</th>
-                      <th style={{ ...headerCell, textAlign: 'right', width: 80 }}>Markup</th>
+                      <th style={{ ...headerCell, textAlign: 'right', width: 110 }}>Markup %</th>
                       <th style={{ ...headerCell, textAlign: 'right' }}>Sell</th>
                       <th style={{ ...headerCell, width: 90 }}></th>
                     </tr>
@@ -473,22 +642,33 @@ export default function MyProductsClient({ email }) {
                   <tbody>
                     {rows.map((row) => {
                       const ov = overrides[row.sku];
-                      const editVal = edits[row.sku];
-                      const displayedCost = editVal !== undefined
-                        ? editVal
+
+                      // Cost field: edited value > saved override > "" (placeholder shows default)
+                      const costEdit = costEdits[row.sku];
+                      const displayedCost = costEdit !== undefined
+                        ? costEdit
                         : (ov ? Number(ov.cost_price).toFixed(2) : '');
-                      const liveCost = Number(displayedCost);
-                      const hasOwnCost = Number.isFinite(liveCost) && liveCost > 0;
-                      const sell = hasOwnCost
-                        ? Math.round(liveCost * MARKUP * 100) / 100
-                        : 0;
-                      const defaultSell = row.defaultCost > 0
-                        ? Math.round(row.defaultCost * MARKUP * 100) / 100
-                        : 0;
+                      const liveCost = Number(displayedCost) || (ov ? Number(ov.cost_price) : Number(row.defaultCost)) || 0;
+
+                      // Markup field: edited > saved override > "" (placeholder shows default)
+                      const markupEdit = markupEdits[row.sku];
+                      const savedMarkup = ov && ov.markup_pct != null ? Number(ov.markup_pct) : null;
+                      const displayedMarkup = markupEdit !== undefined
+                        ? markupEdit
+                        : (savedMarkup != null ? String(savedMarkup) : '');
+                      const liveMarkup = displayedMarkup !== '' && Number.isFinite(Number(displayedMarkup))
+                        ? Number(displayedMarkup)
+                        : defaultMarkupPct;
+
+                      const sell = sellFrom(liveCost, liveMarkup);
+
                       const isOverridden = !!ov;
-                      const isDirty = editVal !== undefined && editVal !== (ov ? Number(ov.cost_price).toFixed(2) : '');
+                      const isDirty =
+                        (costEdit !== undefined && costEdit !== (ov ? Number(ov.cost_price).toFixed(2) : ''))
+                        || (markupEdit !== undefined && markupEdit !== (savedMarkup != null ? String(savedMarkup) : ''));
                       const isSaving = savingSku === row.sku;
                       const isSaved = savedSku === row.sku;
+
                       return (
                         <tr key={row.sku} style={{ borderBottom: '1px solid #f3f4f6' }}>
                           <td style={{ padding: '8px 12px' }} className="ef-hide-sm">
@@ -515,16 +695,27 @@ export default function MyProductsClient({ email }) {
                               min="0"
                               placeholder={row.defaultCost ? row.defaultCost.toFixed(2) : '0.00'}
                               value={displayedCost}
-                              onChange={(e) => setEdits((prev) => ({ ...prev, [row.sku]: e.target.value }))}
+                              onChange={(e) => setCostEdits((prev) => ({ ...prev, [row.sku]: e.target.value }))}
                               onKeyDown={(e) => { if (e.key === 'Enter') saveOne(row); }}
                               style={{ ...inputStyle, textAlign: 'right' }}
                             />
                           </td>
-                          <td style={{ padding: '8px 12px', textAlign: 'right', color: '#6b7280', fontVariantNumeric: 'tabular-nums' }}>
-                            {Math.round((MARKUP - 1) * 100)}%
+                          <td style={{ padding: '8px 12px', textAlign: 'right' }}>
+                            <input
+                              type="number"
+                              step="1"
+                              min="0"
+                              max="1000"
+                              placeholder={String(defaultMarkupPct)}
+                              value={displayedMarkup}
+                              onChange={(e) => setMarkupEdits((prev) => ({ ...prev, [row.sku]: e.target.value }))}
+                              onKeyDown={(e) => { if (e.key === 'Enter') saveOne(row); }}
+                              style={{ ...inputStyle, textAlign: 'right' }}
+                              title={`Blank uses your default (${defaultMarkupPct}%)`}
+                            />
                           </td>
                           <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600, color: '#0891b2', fontVariantNumeric: 'tabular-nums' }}>
-                            {hasOwnCost ? money(sell) : (defaultSell > 0 ? money(defaultSell) : '—')}
+                            {sell > 0 ? money(sell) : '—'}
                           </td>
                           <td style={{ padding: '8px 12px', textAlign: 'right' }}>
                             {isSaved ? (

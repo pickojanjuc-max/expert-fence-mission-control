@@ -48,6 +48,18 @@ export async function POST(request) {
       errors.push({ slot_key: p.slot_key, reason: 'Invalid cost_price' });
       continue;
     }
+
+    // Optional per-SKU markup override. null = inherit user default.
+    let markupPctToSave = null;
+    if (p.markup_pct !== undefined && p.markup_pct !== null && p.markup_pct !== '') {
+      const m = Number(p.markup_pct);
+      if (!Number.isFinite(m) || m < 0 || m > 1000) {
+        errors.push({ slot_key: p.slot_key, reason: 'Invalid markup_pct (must be 0-1000)' });
+        continue;
+      }
+      markupPctToSave = m;
+    }
+
     rows.push({
       user_id: user.id,
       calculator_type,
@@ -57,6 +69,7 @@ export async function POST(request) {
       supplier_name: p.supplier_name ?? '',
       supplier_sku: p.supplier_sku ?? '',
       cost_price: cost,
+      markup_pct: markupPctToSave,
       unit: p.unit || 'each',
       dimensions: p.dimensions || {},
       image_url: p.image_url || null,

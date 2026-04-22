@@ -6,10 +6,15 @@
 // Behaviour:
 //   • Renders synchronously with the built-in defaults (COST_MAP) so the
 //     calculator never blanks on first paint.
-//   • Asynchronously fetches the user's products from /api/products and
-//     overlays them on top of the defaults. Any SKU the user has saved
-//     a custom price for wins; everything else falls back to defaults.
-//   • Only the calculator passed in is fetched (one network call).
+//   • Asynchronously fetches the user's products + settings and overlays
+//     them on top of the defaults. Per-SKU overrides win over the user's
+//     default markup, which wins over the hardcoded fallback.
+//   • Effective sell price for any overridden SKU:
+//         cost × (1 + effectiveMarkupPct / 100)
+//     where effectiveMarkupPct =
+//         product.markup_pct
+//         ?? settings.default_markup_pct
+//         ?? FALLBACK_MARKUP_PCT (40)
 //
 // This is the ONLY refactor needed to switch a calculator from "shared
 // defaults" to "per-tenant pricing". A user can sign up with no products
@@ -19,16 +24,20 @@
 import { useEffect, useState } from 'react';
 import { COST_MAP } from '@/lib/costData';
 
-const MARKUP = 1.4; // keep in sync with costData.js
+const FALLBACK_MARKUP_PCT = 40; // matches the hardcoded MARKUP=1.4 in costData.js
 
-function buildOverlay(userProducts) {
+function buildOverlay(userProducts, defaultMarkupPct) {
   const overlay = {};
   for (const p of userProducts || []) {
     if (!p?.slot_key) continue;
     const key = String(p.slot_key).toUpperCase();
     const cost = Number(p.cost_price) || 0;
+    const markupPct = (p.markup_pct != null && Number.isFinite(Number(p.markup_pct)))
+      ? Number(p.markup_pct)
+      : defaultMarkupPct;
+    const multiplier = 1 + markupPct / 100;
     overlay[key] = {
-      sell: Math.round(cost * MARKUP * 100) / 100,
+      sell: Math.round(cost * multiplier * 100) / 100,
       cost: Math.round(cost * 100) / 100,
       img: p.image_url || COST_MAP[key]?.img || '',
     };
@@ -46,11 +55,23 @@ export function useUserCostMap(calculatorType) {
       setLoaded(true);
       return;
     }
-    fetch(`/api/products?calculator_type=${encodeURIComponent(calculatorType)}`)
-      .then((r) => (r.ok ? r.json() : { products: [] }))
-      .then((data) => {
+
+    // Fetch products + settings together. Either failure falls back gracefully.
+    Promise.all([
+      fetch(`/api/products?calculator_type=${encodeURIComponent(calculatorType)}`)
+        .then((r) => (r.ok ? r.json() : { products: [] }))
+        .catch(() => ({ products: [] })),
+      fetch(`/api/settings?calculator_type=${encodeURIComponent(calculatorType)}`)
+        .then((r) => (r.ok ? r.json() : { settings: { default_markup_pct: FALLBACK_MARKUP_PCT } }))
+        .catch(() => ({ settings: { default_markup_pct: FALLBACK_MARKUP_PCT } })),
+    ])
+      .then(([productsData, settingsData]) => {
         if (!alive) return;
-        const overlay = buildOverlay(data.products);
+        const defaultMarkupPct = Number(settingsData?.settings?.default_markup_pct);
+        const safeDefault = Number.isFinite(defaultMarkupPct)
+          ? defaultMarkupPct
+          : FALLBACK_MARKUP_PCT;
+        const overlay = buildOverlay(productsData.products, safeDefault);
         // Merge: defaults first, user overrides on top
         setCostMap({ ...COST_MAP, ...overlay });
         setLoaded(true);
@@ -58,6 +79,7 @@ export function useUserCostMap(calculatorType) {
       .catch(() => {
         if (alive) setLoaded(true);
       });
+
     return () => {
       alive = false;
     };
