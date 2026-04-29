@@ -5,7 +5,7 @@ import { STYLE_CONFIG, STYLE_DEFS, SHAPE_MAP, MOUNT_TYPES, GATE_MODES } from "@/
 import { loadSavedV2State, saveV2State, getDefaultAluminiumRun } from "@/lib/aluminiumV2State";
 import CalculatorPage from "@/components/aluminium-v2/CalculatorPage";
 
-export default function AluminiumV2Client() {
+export default function AluminiumV2Client({ demoMode = false }) {
   // ─── State (defaults only — sessionStorage restored after hydration) ────
   const [selectedStyle, setSelectedStyle] = useState("Tubular");
   const [colour, setColour] = useState("Black");
@@ -201,6 +201,7 @@ export default function AluminiumV2Client() {
       saveMsg={saveMsg}
       onProjectSaved={handleProjectSaved}
       getCurrentState={getCurrentState}
+      demoMode={demoMode}
     />
   );
 }

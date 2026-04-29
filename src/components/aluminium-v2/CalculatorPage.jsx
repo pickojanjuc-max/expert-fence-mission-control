@@ -27,6 +27,7 @@ export default function CalculatorPage({
   saveMsg,
   onProjectSaved,
   getCurrentState,
+  demoMode = false,
 }) {
   const bomSnapshot = lastQuote
     ? { bom: lastQuote.bom, summary: lastQuote.summary }
@@ -98,28 +99,35 @@ export default function CalculatorPage({
     <div className="min-h-screen md:h-screen bg-gray-50 flex flex-col overflow-y-auto md:overflow-hidden">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 px-3 md:px-5 py-3 flex items-center gap-3 flex-shrink-0">
-        <a
-          href={projectId ? `/project/${projectId}` : "/dashboard"}
-          className="text-sm text-blue-600 font-medium hover:underline flex items-center gap-1"
-        >
-          {projectId ? "← Back to Project" : "← Dashboard"}
-        </a>
+        {!demoMode && (
+          <a
+            href={projectId ? `/project/${projectId}` : "/dashboard"}
+            className="text-sm text-blue-600 font-medium hover:underline flex items-center gap-1"
+          >
+            {projectId ? "← Back to Project" : "← Dashboard"}
+          </a>
+        )}
         <div className="w-7 h-7 bg-cyan-500 rounded-md flex items-center justify-center">
           <span className="text-white text-xs font-black">EF</span>
         </div>
         <span className="text-sm font-bold text-gray-800 tracking-wide flex-1">
           Expert Fence Aluminium Calculator
-          {projectName && <span className="text-gray-400 font-normal ml-2">— {projectName}</span>}
+          {demoMode && <span className="text-cyan-600 font-normal ml-2">— Demo</span>}
+          {!demoMode && projectName && <span className="text-gray-400 font-normal ml-2">— {projectName}</span>}
         </span>
-        <button
-          onClick={projectId ? handleDirectUpdate : () => setShowSaveModal(true)}
-          disabled={updating}
-          className="px-3 py-1.5 text-xs font-semibold text-white bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-300 rounded-md transition-colors"
-        >
-          {updating ? "Updating…" : projectId ? "Update Project" : "Save Project"}
-        </button>
-        {(localSaveMsg || saveMsg) && (
-          <span className="text-xs text-emerald-600 font-medium">{localSaveMsg || saveMsg}</span>
+        {!demoMode && (
+          <>
+            <button
+              onClick={projectId ? handleDirectUpdate : () => setShowSaveModal(true)}
+              disabled={updating}
+              className="px-3 py-1.5 text-xs font-semibold text-white bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-300 rounded-md transition-colors"
+            >
+              {updating ? "Updating…" : projectId ? "Update Project" : "Save Project"}
+            </button>
+            {(localSaveMsg || saveMsg) && (
+              <span className="text-xs text-emerald-600 font-medium">{localSaveMsg || saveMsg}</span>
+            )}
+          </>
         )}
       </header>
 
@@ -205,17 +213,19 @@ export default function CalculatorPage({
       </div>
 
       {/* Save Modal */}
-      <SaveProjectModal
-        show={showSaveModal}
-        onClose={() => setShowSaveModal(false)}
-        onSaved={onProjectSaved}
-        calculatorType="aluminium"
-        calculatorState={getCurrentState()}
-        bomSnapshot={bomSnapshot}
-        currentProjectId={projectId}
-        currentProjectName={projectName}
-        currentCalculationId={calculationId}
-      />
+      {!demoMode && (
+        <SaveProjectModal
+          show={showSaveModal}
+          onClose={() => setShowSaveModal(false)}
+          onSaved={onProjectSaved}
+          calculatorType="aluminium"
+          calculatorState={getCurrentState()}
+          bomSnapshot={bomSnapshot}
+          currentProjectId={projectId}
+          currentProjectName={projectName}
+          currentCalculationId={calculationId}
+        />
+      )}
     </div>
   );
 }

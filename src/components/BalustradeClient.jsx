@@ -2,6 +2,6 @@
 
 import Calculator from "@/components/balustrade/CalculatorPage";
 
-export default function BalustradeClient() {
-  return <Calculator />;
+export default function BalustradeClient({ demoMode = false }) {
+  return <Calculator demoMode={demoMode} />;
 }
