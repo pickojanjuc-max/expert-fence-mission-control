@@ -7,16 +7,16 @@ import { createSupabaseServer } from '@/lib/supabaseServer';
 // GET  /api/settings?calculator_type=balustrade
 //   → { settings: { calculator_type, default_markup_pct } }
 //   If the user has never saved settings for this calc, returns the
-//   built-in fallback (40%) without inserting a row.
+//   built-in fallback (60%) without inserting a row.
 //
 // PUT  /api/settings
 //   body: { calculator_type, default_markup_pct }
 //   → upserts the row for the current user.
 //
-// Markup is stored as a percent (40 = 40%) — matches what the user types.
+// Markup is stored as a percent (60 = 60%) — matches what the user types.
 // ─────────────────────────────────────────────────────────────────────
 
-const FALLBACK_MARKUP_PCT = 40;
+const FALLBACK_MARKUP_PCT = 60;
 
 export async function GET(request) {
   const supabase = await createSupabaseServer();

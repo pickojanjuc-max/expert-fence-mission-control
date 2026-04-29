@@ -3,7 +3,7 @@
  * This is the complete pricing table used by the BOM engine.
  *
  * Format: SKU -> { sell: number, cost: number, img: string }
- * If sell_price_aud is 0 but cost > 0, sell defaults to cost * 1.4 (40% markup).
+ * If sell_price_aud is 0 but cost > 0, sell defaults to cost * 1.6 (60% markup).
  * Image URLs are populated from the CSV; variants without images use black variant fallback.
  */
 
@@ -478,9 +478,9 @@ const RAW_COSTS = [
  * per-item margins. If cost is 0 (unknown), the explicit `sell` price from
  * the data is used as-is.
  *
- * Adjust MARKUP to change the site-wide margin (1.4 = 40%).
+ * Adjust MARKUP to change the site-wide margin (1.6 = 60%).
  */
-const MARKUP = 1.4;
+const MARKUP = 1.6;
 
 export function buildCostMap() {
   const map = {};

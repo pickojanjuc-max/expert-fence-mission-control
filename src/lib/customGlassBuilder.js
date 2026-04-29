@@ -17,7 +17,7 @@
  *   - Shape surcharge: simple (1 raked edge) or complex
  */
 
-export const MARKUP = 1.40;
+export const MARKUP = 1.60;
 
 // ── Supplier cost rates (8–14mm thickness group) ──────────────────────────────
 

@@ -14,7 +14,7 @@
 //     where effectiveMarkupPct =
 //         product.markup_pct
 //         ?? settings.default_markup_pct
-//         ?? FALLBACK_MARKUP_PCT (40)
+//         ?? FALLBACK_MARKUP_PCT (60)
 //
 // This is the ONLY refactor needed to switch a calculator from "shared
 // defaults" to "per-tenant pricing". A user can sign up with no products
@@ -24,7 +24,7 @@
 import { useEffect, useState } from 'react';
 import { COST_MAP } from '@/lib/costData';
 
-const FALLBACK_MARKUP_PCT = 40; // matches the hardcoded MARKUP=1.4 in costData.js
+const FALLBACK_MARKUP_PCT = 60; // matches the hardcoded MARKUP=1.6 in costData.js
 
 function buildOverlay(userProducts, defaultMarkupPct) {
   const overlay = {};

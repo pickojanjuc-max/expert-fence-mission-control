@@ -12,7 +12,7 @@
 // Resolution order for the markup applied to each SKU:
 //   1. The per-row markup_pct (if the user has saved one)
 //   2. The user's default markup for this calculator (/api/settings)
-//   3. FALLBACK_MARKUP_PCT (40) — what the app shipped with
+//   3. FALLBACK_MARKUP_PCT (60) — what the app shipped with
 //
 // This file mirrors useUserCostMap so what shows here matches what
 // the calculator/BOM displays for the customer.
@@ -21,7 +21,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Sidebar from '@/components/Sidebar';
 
-const FALLBACK_MARKUP_PCT = 40; // mirrors useUserCostMap.js + costData.js
+const FALLBACK_MARKUP_PCT = 60; // mirrors useUserCostMap.js + costData.js
 
 const BALUSTRADE_SOURCES = [
   { url: '/data/balustrade/spigots.csv', category: 'Spigot' },
